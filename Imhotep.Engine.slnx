@@ -1,6 +1,13 @@
 <Solution>
   <Folder Name="/docs/" />
   <Folder Name="/samples/" />
-  <Folder Name="/src/" />
+  <Folder Name="/Solution Items/">
+    <File Path="LICENSE.txt" />
+    <File Path="README.md" />
+  </Folder>
+  <Folder Name="/src/">
+    <Project Path="Imhotep.SemanticModel/Imhotep.SemanticModel.csproj" />
+    <Project Path="Imhotep.Specification/Imhotep.Specification.csproj" />
+  </Folder>
   <Folder Name="/tests/" />
 </Solution>
