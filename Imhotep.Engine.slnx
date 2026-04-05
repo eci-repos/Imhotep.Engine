@@ -1,5 +1,8 @@
 <Solution>
   <Folder Name="/docs/" />
+  <Folder Name="/reports/">
+    <File Path="reports/phase.core.abstractions.1-2.md" />
+  </Folder>
   <Folder Name="/samples/" />
   <Folder Name="/Solution Items/">
     <File Path="LICENSE.txt" />
@@ -9,5 +12,8 @@
     <Project Path="Imhotep.SemanticModel/Imhotep.SemanticModel.csproj" />
     <Project Path="Imhotep.Specification/Imhotep.Specification.csproj" />
   </Folder>
-  <Folder Name="/tests/" />
+  <Folder Name="/tests/">
+    <Project Path="tests/SpecificationIntakePipelineTests/Integration.Specification.Tests.csproj" Id="53765eb1-eb62-4192-9e7f-b432eee5fb94" />
+    <Project Path="tests/Tests.Library/Tests.Library.csproj" Id="a3b9b36d-b4f7-475c-86be-59650988695f" />
+  </Folder>
 </Solution>

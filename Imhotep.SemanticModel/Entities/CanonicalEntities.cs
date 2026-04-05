@@ -4,7 +4,8 @@
 namespace Imhotep.SemanticModel.Entities;
 
 /// <summary>
-/// Base contract ensuring all canonical entities participate in the Traceability Graph.
+/// Base interface ensuring every canonical entity tracks its Traceability ID
+/// to support the bidirectional Traceability Graph.
 /// </summary>
 public interface ICanonicalEntity
 {
@@ -12,60 +13,117 @@ public interface ICanonicalEntity
 }
 
 // 1. Project: Represents the root identity and high-level objectives.
-public record ProjectEntity(
-   string TraceabilityId, string Name, string Description, string Domain) : ICanonicalEntity;
+public record ProjectEntity : ICanonicalEntity
+{
+   public string TraceabilityId { get; init; } = string.Empty;
+   public string Name { get; init; } = string.Empty;
+   public string Description { get; init; } = string.Empty;
+   public string Domain { get; init; } = string.Empty;
+}
 
-// 2. Context: Describes the environment, integrations, and operational boundaries.
-public record ContextEntity
-   (string TraceabilityId, string Description) : ICanonicalEntity;
+// 2. Context: Describes the environment in which the system operates.
+public record ContextEntity : ICanonicalEntity
+{
+   public string TraceabilityId { get; init; } = string.Empty;
+   public string Description { get; init; } = string.Empty;
+   public string Environment { get; init; } = string.Empty;
+}
 
-// 3. Stakeholder: Human governance, oversight roles, and accountability structures.
-public record StakeholderEntity(
-   string TraceabilityId, string RoleName, string Responsibilities) : ICanonicalEntity;
+// 3. Stakeholder: Represents individuals or human governance roles.
+public record StakeholderEntity : ICanonicalEntity
+{
+   public string TraceabilityId { get; init; } = string.Empty;
+   public string Role { get; init; } = string.Empty;
+   public string Description { get; init; } = string.Empty;
+}
 
-// 4. Actor: Users, automated processes, or external systems interacting directly.
-public record ActorEntity(
-   string TraceabilityId, string Name, string Description) : ICanonicalEntity;
+// 4. Actor: Represents entities (users, systems) that interact directly with the system.
+public record ActorEntity : ICanonicalEntity
+{
+   public string TraceabilityId { get; init; } = string.Empty;
+   public string Name { get; init; } = string.Empty;
+   public string Description { get; init; } = string.Empty;
+}
 
-// 5. Capability: High-level business functions derived from groups of requirements.
-public record CapabilityEntity(
-   string TraceabilityId, string Name, string Description) : ICanonicalEntity;
+// 5. Capability: Represents higher-level system functions.
+public record CapabilityEntity : ICanonicalEntity
+{
+   public string TraceabilityId { get; init; } = string.Empty;
+   public string Name { get; init; } = string.Empty;
+   public string Description { get; init; } = string.Empty;
+}
 
-// 6. Requirement: Specific functional, non-functional, and operational rules.
-public record RequirementEntity(
-   string TraceabilityId, string Description, 
-   IReadOnlyList<string> FulfillsCapabilityIds) : ICanonicalEntity;
+// 6. Requirement: Statements of system behavior, constraints, or compliance.
+public record RequirementEntity : ICanonicalEntity
+{
+   public string TraceabilityId { get; init; } = string.Empty;
+   public string Description { get; init; } = string.Empty;
+}
 
 // 7. Service: Logical deployable subsystems responsible for implementing capabilities.
-public record ServiceEntity(
-   string TraceabilityId, string Name, string Description, 
-   IReadOnlyList<string> ImplementsCapabilityIds, 
-   IReadOnlyList<string> UsesDataEntityIds) : ICanonicalEntity;
+public record ServiceEntity : ICanonicalEntity
+{
+   public string TraceabilityId { get; init; } = string.Empty;
+   public string Name { get; init; } = string.Empty;
+   public string Description { get; init; } = string.Empty;
+}
 
-// 8. Interface: Specific communication boundaries (APIs, messaging endpoints).
-public record InterfaceEntity(
-   string TraceabilityId, string Name, string Description, string ConnectsActorId, 
-   string ToServiceId) : ICanonicalEntity;
+// 8. Interface: Specific communication boundaries (e.g., APIs).
+public record InterfaceEntity : ICanonicalEntity
+{
+   public string TraceabilityId { get; init; } = string.Empty;
+   public string Name { get; init; } = string.Empty;
+   public string Description { get; init; } = string.Empty;
+}
 
-// 9. DataEntity: Structured information models, attributes, and relationships.
-public record DataEntityModel(
-   string TraceabilityId, string SchemaName, string Description) : ICanonicalEntity;
+// 9. DataEntityModel: Structured information models and relationships.
+public record DataEntityModel : ICanonicalEntity
+{
+   public string TraceabilityId { get; init; } = string.Empty;
+   public string Name { get; init; } = string.Empty;
+   public string Description { get; init; } = string.Empty;
+}
 
 // 10. Workflow: Step-by-step behavioral processes and state transitions.
-public record WorkflowEntity(
-   string TraceabilityId, string Name, string Description) : ICanonicalEntity;
+public record WorkflowEntity : ICanonicalEntity
+{
+   public string TraceabilityId { get; init; } = string.Empty;
+   public string Name { get; init; } = string.Empty;
+   public string Description { get; init; } = string.Empty;
+}
 
-// 11. Policy: Strict security constraints, privacy rules, and access control mechanisms (e.g., CJIS/NIST).
-public record PolicyEntity(
-   string TraceabilityId, string Name, string ComplianceTier, string Description, 
-   IReadOnlyList<string> ConstrainsEntityIds) : ICanonicalEntity;
+// 11. Policy: Strict security constraints, compliance rules, and access controls.
+public record PolicyEntity : ICanonicalEntity
+{
+   public string TraceabilityId { get; init; } = string.Empty;
+   public string Name { get; init; } = string.Empty;
+   public string Description { get; init; } = string.Empty;
+   public string ConstraintLevel { get; init; } = string.Empty; // e.g., Mandatory, Recommended, Optional
+}
 
-// 12. Infrastructure: The deployment expectations and runtime environments.
-public record InfrastructureEntity(
-   string TraceabilityId, string TargetEnvironment, string Description) : ICanonicalEntity;
+// 12. Infrastructure: Deployment targets, scaling strategies, and runtime environments.
+public record InfrastructureEntity : ICanonicalEntity
+{
+   public string TraceabilityId { get; init; } = string.Empty;
+   public string Name { get; init; } = string.Empty;
+   public string Description { get; init; } = string.Empty;
+}
 
-// 13. Validation: Deterministic rules and exact testing scenarios mapped to specific tools.
-public record ValidationEntity(
-   string TraceabilityId, string Name, string TargetToolPlugin, string Description,
-   IReadOnlyList<string> VerifiesEntityIds) : ICanonicalEntity;
+// 13. Validation: Deterministic verification mechanisms mapped to specific tools.
+public record ValidationEntity : ICanonicalEntity
+{
+   public string TraceabilityId { get; init; } = string.Empty;
+   public string Name { get; init; } = string.Empty;
+   public string Description { get; init; } = string.Empty;
+   public string ToolMapping { get; init; } = string.Empty;
+}
 
+/// <summary>
+/// Represents an explicit relational link (edge) between two entities in the Traceability Graph.
+/// For example, linking a Validation rule (SourceId) back to the Policy it verifies (TargetId) 
+/// to enable automated impact analysis.
+/// </summary>
+public record TraceabilityEdge(
+    string SourceId,
+    string TargetId
+);

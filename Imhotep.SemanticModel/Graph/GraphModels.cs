@@ -14,13 +14,17 @@ public record ParsedPayload(
     IReadOnlyList<string> AgentRoles,
     string TargetArchitecture,
     string RawContextAssembly,
-    string RawContent);
+    string RawContent,
+    IReadOnlyDictionary<string, string> ExtractedEntities
+);
 
 /// <summary>
 /// The authoritative, in-memory relational graph representing the 13 canonical entities.
 /// This is the exact model the Planning Engine uses to construct the task graph.
 /// </summary>
 public record CanonicalSemanticModel(
+    string TransactionId,                      // Added for runtime tracking
+    string TargetArchitecture,                 // Added for deployment targeting
     ProjectEntity Project,
     IReadOnlyList<ContextEntity> Contexts,
     IReadOnlyList<StakeholderEntity> Stakeholders,
@@ -33,7 +37,8 @@ public record CanonicalSemanticModel(
     IReadOnlyList<WorkflowEntity> Workflows,
     IReadOnlyList<PolicyEntity> Policies,
     IReadOnlyList<InfrastructureEntity> Infrastructures,
-    IReadOnlyList<ValidationEntity> Validations
+    IReadOnlyList<ValidationEntity> Validations,
+    IReadOnlyList<TraceabilityEdge> TraceabilityEdges // Added to hold explicit relationships
 );
 
 /// <summary>

@@ -1,17 +1,22 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Text;
+using Imhotep.SemanticModel.Graph;
 
 using Imhotep.SemanticModel.Feedback;
 
 // -------------------------------------------------------------------------------------------------
 namespace Imhotep.Specification.Feedback;
 
+/// <summary>
+/// Defines the contract for formatting readiness evaluation gaps into the 
+/// strict Human-Machine escalation format required by the IMHOTEP architecture.
+/// </summary>
 public interface IClarificationFormatter
 {
    /// <summary>
-   /// Formats missing canonical elements or ambiguous rules strictly into 
-   /// the ### CLARIFICATIONS REQUIRED block.
+   /// Transforms a failed SpecificationReadinessReport into a formatted clarification block.
    /// </summary>
-   string FormatClarifications(IEnumerable<ClarificationItem> gaps);
+   string FormatClarifications(SpecificationReadinessReport report);
 }

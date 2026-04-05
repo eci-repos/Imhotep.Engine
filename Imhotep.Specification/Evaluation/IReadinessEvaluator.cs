@@ -12,6 +12,6 @@ public interface IReadinessEvaluator
    /// <summary>
    /// Performs automated structural analysis to verify consistency and clear Approval Gates.
    /// </summary>
-   Task<SpecificationReadinessReport> EvaluateReadinessAsync(
+   Task<SpecificationReadinessReport> EvaluateAsync(
       CanonicalSemanticModel semanticModel, CancellationToken cancellationToken = default);
 }
