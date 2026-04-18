@@ -1,0 +1,15 @@
+version: '3.8'
+
+services:
+  macs-intake-service:
+    image: imhotep-macs-intake:latest
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "5000:5000"
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Production
+      # POL-NIST-001: Entra ID Configuration variables would be injected here
+      - EntraId__TenantId=YOUR_TENANT_ID
+      - EntraId__ClientId=YOUR_CLIENT_ID

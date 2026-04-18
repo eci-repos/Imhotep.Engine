@@ -1,5 +1,12 @@
 <Solution>
   <Folder Name="/docs/" />
+  <Folder Name="/experimental/" />
+  <Folder Name="/experimental/Court.CMS.POC/">
+    <File Path="docker-compose.yml" />
+    <File Path="Dockerfile" />
+    <Project Path="experimental/Court.CMS.POC/Imhotep.Macs.Court.Cms.Intake.Console/Imhotep.Macs.Court.Cms.Intake.Console.csproj" Id="c9ad453a-339e-43ce-b130-e9715dd5bce2" />
+    <Project Path="experimental/Court.CMS.POC/Imhotep.Macs/Imhotep.Macs.Court.Cms.Intake.csproj" />
+  </Folder>
   <Folder Name="/reports/">
     <File Path="reports/phase.core.abstractions.1-2.md" />
   </Folder>
@@ -9,10 +16,23 @@
     <File Path="README.md" />
   </Folder>
   <Folder Name="/src/">
-    <Project Path="Imhotep.SemanticModel/Imhotep.SemanticModel.csproj" />
-    <Project Path="Imhotep.Specification/Imhotep.Specification.csproj" />
+    <Project Path="src/Imhotep.Agents/Imhotep.Agents.csproj" Id="93631408-d8fa-4ea3-a389-4022422edc33" />
+    <Project Path="src/Imhotep.ExecutionSerivice/Imhotep.ExecutionSerivice.csproj" Id="1a414ad6-2ba2-4468-845f-0f5ef39a098b" />
+    <Project Path="src/Imhotep.Governance/Imhotep.Governance.csproj" Id="93894919-7273-4387-aa31-1acbca4bbdf0" />
+    <Project Path="src/Imhotep.ModelGateway/Imhotep.ModelGateway.csproj" Id="99f74f91-996c-4677-895f-0dc1a10f2053" />
+    <Project Path="src/Imhotep.Observability/Imhotep.Observability.csproj" Id="d7b26647-b46e-4965-bbdd-95fc0764f972" />
+    <Project Path="src/Imhotep.Planning/Imhotep.Planning.csproj" Id="93f3a70a-c517-419e-a7fa-c5f15e5ea7a1" />
+    <Project Path="src/Imhotep.Repository/Imhotep.Repository.csproj" Id="3bc6e73c-2283-42d7-9e66-383fabebdd23" />
+    <Project Path="src/Imhotep.Runtime/Imhotep.Runtime.csproj" Id="7ceaa99d-4051-4f0b-ae50-9254733a4110" />
+    <Project Path="src/Imhotep.SemanticModel/Imhotep.SemanticModel.csproj" />
+    <Project Path="src/Imhotep.Specification/Imhotep.Specification.csproj" />
+    <Project Path="src/Imhotep.TelemetryService/Imhotep.TelemetryService.csproj" Id="196d809c-b24a-41c1-ac40-d6f83ecae5a6" />
+    <Project Path="src/Imhotep.ToolGateway/Imhotep.ToolGateway.csproj" Id="d4e74106-cadb-4fb2-ae4e-f10aeefce997" />
+    <Project Path="src/Imhotep.Tools/Imhotep.Tools.csproj" Id="d65ea6ba-740f-42b4-b477-6bdf18276956" />
+    <Project Path="src/Imhotep.Traceability/Imhotep.Traceability.csproj" Id="15d8c58b-467f-4c2a-834b-654719c175bf" />
   </Folder>
   <Folder Name="/tests/">
+    <Project Path="tests/Macs.GeneratorAgent.Tests/Macs.GeneratorAgent.Tests.csproj" Id="fb571875-959c-4cbb-b8f9-f73b62060035" />
     <Project Path="tests/SpecificationIntakePipelineTests/Integration.Specification.Tests.csproj" Id="53765eb1-eb62-4192-9e7f-b432eee5fb94" />
     <Project Path="tests/Tests.Library/Tests.Library.csproj" Id="a3b9b36d-b4f7-475c-86be-59650988695f" />
   </Folder>

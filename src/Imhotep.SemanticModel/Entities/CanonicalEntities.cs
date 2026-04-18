@@ -3,15 +3,6 @@
 // -------------------------------------------------------------------------------------------------
 namespace Imhotep.SemanticModel.Entities;
 
-/// <summary>
-/// Base interface ensuring every canonical entity tracks its Traceability ID
-/// to support the bidirectional Traceability Graph.
-/// </summary>
-public interface ICanonicalEntity
-{
-   string TraceabilityId { get; init; }
-}
-
 // 1. Project: Represents the root identity and high-level objectives.
 public record ProjectEntity : ICanonicalEntity
 {
@@ -25,6 +16,7 @@ public record ProjectEntity : ICanonicalEntity
 public record ContextEntity : ICanonicalEntity
 {
    public string TraceabilityId { get; init; } = string.Empty;
+   public string Name { get; init; } = string.Empty;
    public string Description { get; init; } = string.Empty;
    public string Environment { get; init; } = string.Empty;
 }
@@ -33,6 +25,7 @@ public record ContextEntity : ICanonicalEntity
 public record StakeholderEntity : ICanonicalEntity
 {
    public string TraceabilityId { get; init; } = string.Empty;
+   public string Name { get; init; } = string.Empty;
    public string Role { get; init; } = string.Empty;
    public string Description { get; init; } = string.Empty;
 }
@@ -57,6 +50,7 @@ public record CapabilityEntity : ICanonicalEntity
 public record RequirementEntity : ICanonicalEntity
 {
    public string TraceabilityId { get; init; } = string.Empty;
+   public string Name { get; init; } = string.Empty;
    public string Description { get; init; } = string.Empty;
 }
 
@@ -122,8 +116,25 @@ public record ValidationEntity : ICanonicalEntity
 /// Represents an explicit relational link (edge) between two entities in the Traceability Graph.
 /// For example, linking a Validation rule (SourceId) back to the Policy it verifies (TargetId) 
 /// to enable automated impact analysis.
+/// 
+/// Serves as the mathematical link between specification entities, 
+/// forming the bidirectional Traceability Graph.
 /// </summary>
-public record TraceabilityEdge(
-    string SourceId,
-    string TargetId
-);
+public record TraceabilityEdge
+{
+   /// <summary>
+   /// The TraceabilityId of the upstream/source entity (e.g., "POL-CJIS-001").
+   /// </summary>
+   public required string SourceId { get; init; }
+
+   /// <summary>
+   /// The TraceabilityId of the downstream/target entity fulfilling the constraint (e.g., "VAL-001").
+   /// </summary>
+   public required string TargetId { get; init; }
+
+   /// <summary>
+   /// Describes the explicit edge creation type (e.g., "Fulfills", "Constrains", "Implements").
+   /// </summary>
+   public required string RelationshipType { get; init; }
+}
+

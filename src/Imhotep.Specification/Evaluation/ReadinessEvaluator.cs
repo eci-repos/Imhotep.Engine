@@ -3,6 +3,7 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Imhotep.SemanticModel.Graph;
+using Imhotep.SemanticModel.Entities;
 
 namespace Imhotep.Specification.Evaluation;
 
@@ -39,14 +40,14 @@ public class ReadinessEvaluator : IReadinessEvaluator
 
       // 2. Evaluate the Traceability Graph (Explicit Edge Verification)
       // Ensures downstream validation rules are properly mapped to upstream constraints.
-      if (model.Validations != null && model.TraceabilityEdges != null)
+      if (model.Validations != null && model.TraceabilityGraph != null)
       {
          foreach (var validation in model.Validations)
          {
             cancellationToken.ThrowIfCancellationRequested();
 
             // Verify if this Validation ID exists as a source in any traceability edge
-            bool hasMapping = model.TraceabilityEdges.Any(e => e.SourceId == validation.TraceabilityId);
+            bool hasMapping = model.TraceabilityGraph.Any(e => e.SourceId == validation.TraceabilityId);
 
             if (!hasMapping)
             {
