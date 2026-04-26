@@ -7,7 +7,13 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\Imhotep.Agents\Imhotep.Agents.csproj" />
+    <ProjectReference Include="..\Imhotep.Governance\Imhotep.Governance.csproj" />
+    <ProjectReference Include="..\Imhotep.Observability\Imhotep.Observability.csproj" />
     <ProjectReference Include="..\Imhotep.Planning\Imhotep.Planning.csproj" />
+    <ProjectReference Include="..\Imhotep.Repository\Imhotep.Repository.csproj" />
+    <ProjectReference Include="..\Imhotep.ToolGateway\Imhotep.ToolGateway.csproj" />
+    <ProjectReference Include="..\Imhotep.Tools\Imhotep.Tools.csproj" />
   </ItemGroup>
 
 </Project>

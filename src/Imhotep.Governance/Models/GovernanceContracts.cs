@@ -42,27 +42,16 @@ public record ApprovalGate
    /// <summary>
    /// The current state of the gate (e.g., "Pending", "Approved", "Escalated").
    /// </summary>
-   public string Status { get; init; } = "Pending";
+   public string Status { get; set; } = "Pending";
 
    /// <summary>
    /// Captures the exact timestamp of human sign-off.
    /// </summary>
-   public DateTimeOffset? ApprovedAt { get; init; }
+   public DateTimeOffset? ApprovedAt { get; set; }
 
    /// <summary>
    /// Captures the identity of the human authority who granted the approval.
    /// </summary>
-   public string ApprovedBy { get; init; } = string.Empty;
-}
-
-/// <summary>
-/// Represents the deterministic outcome of a policy evaluation against a generated artifact.
-/// </summary>
-public record PolicyEvaluationResult
-{
-   public required string ArtifactId { get; init; }
-   public required string PolicyId { get; init; }
-   public required bool IsCompliant { get; init; }
-   public IReadOnlyList<string> Violations { get; init; } = new List<string>();
+   public string ApprovedBy { get; set; } = string.Empty;
 }
 

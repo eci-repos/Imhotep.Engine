@@ -1,9 +1,9 @@
 ﻿using System.Threading.Tasks;
 using Imhotep.Agents.Models;
-using Imhotep.Planning.Services;
+using Imhotep.Planning.Models;
 using Imhotep.SemanticModel.Graph;
 
-namespace Imhotep.Agents.Services;
+namespace Imhotep.Agents.Abstractions;
 
 /// <summary>
 /// Defines the contract for specialized reasoning components 
@@ -19,7 +19,7 @@ public interface IReasoningAgent
    /// <summary>
    /// Executes the reasoning task based on the provided context, returning a structured response.
    /// </summary>
-   Task<AgentResponse> ExecuteTaskAsync(AgentContext context);
+   Task<AgentResult> ExecuteTaskAsync(AgentContext context);
 }
 
 /// <summary>
@@ -31,5 +31,5 @@ public interface IAgentOrchestrator
    /// <summary>
    /// Analyzes a construction task and dispatches it to the appropriate specialized agent.
    /// </summary>
-   Task<AgentResponse> DispatchTaskAsync(ConstructionTask task, CanonicalSemanticModel semanticModel);
+   Task<AgentResult> DispatchTaskAsync(ConstructionTask task, AgentContext context, CancellationToken cancellationToken = default);
 }

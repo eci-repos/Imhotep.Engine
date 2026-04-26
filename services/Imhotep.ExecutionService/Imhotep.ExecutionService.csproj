@@ -1,0 +1,34 @@
+<Project Sdk="Microsoft.NET.Sdk.Worker">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <UserSecretsId>dotnet-Imhotep.ExecutionService-aa24284c-7189-4b87-bf31-e611f3e28405</UserSecretsId>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Extensions.Hosting" Version="10.0.7" />
+    <PackageReference Include="Microsoft.SemanticKernel" Version="1.74.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\Imhotep.Agents\Imhotep.Agents.csproj" />
+    <ProjectReference Include="..\..\src\Imhotep.Governance\Imhotep.Governance.csproj" />
+    <ProjectReference Include="..\..\src\Imhotep.ModelGateway\Imhotep.ModelGateway.csproj" />
+    <ProjectReference Include="..\..\src\Imhotep.Planning\Imhotep.Planning.csproj" />
+    <ProjectReference Include="..\..\src\Imhotep.Runtime\Imhotep.Runtime.csproj" />
+    <ProjectReference Include="..\..\src\Imhotep.SemanticModel\Imhotep.SemanticModel.csproj" />
+    <ProjectReference Include="..\..\src\Imhotep.Specification\Imhotep.Specification.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Folder Include="payloads\" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Update="payloads\PROJ-INTAKE-001.md">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
+</Project>

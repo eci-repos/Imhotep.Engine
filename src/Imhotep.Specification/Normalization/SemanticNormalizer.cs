@@ -38,24 +38,24 @@ public class SemanticNormalizer : ISemanticNormalizer
       var edges = BuildTraceabilityGraph(payload.ExtractedEntities);
 
       // Instantiate your exact strongly-typed record
-      var semanticModel = new CanonicalSemanticModel(
-          TransactionId: payload.TransactionId,
-          TargetArchitecture: payload.TargetArchitecture,
-          Project: project,
-          Contexts: contexts,
-          Stakeholders: stakeholders,
-          Actors: actors,
-          Capabilities: capabilities,
-          Requirements: requirements,
-          Services: services,
-          Interfaces: interfaces,
-          DataEntities: dataEntities,
-          Workflows: workflows,
-          Policies: policies,
-          Infrastructures: infrastructures,
-          Validations: validations,
-          TraceabilityEdges: edges
-      );
+      var semanticModel = new CanonicalSemanticModel {
+         TransactionId = payload.TransactionId,
+         TargetArchitecture = payload.TargetArchitecture,
+         Project = project,
+         Contexts = contexts,
+         Stakeholders = stakeholders,
+         Actors = actors,
+         Capabilities = capabilities,
+         Requirements = requirements,
+         Services = services,
+         Interfaces = interfaces,
+         DataEntities = dataEntities,
+         Workflows = workflows,
+         Policies = policies,
+         Infrastructures = infrastructures,
+         Validations = validations,
+         RelationshipEdge = edges
+      };
 
       return Task.FromResult(semanticModel);
    }

@@ -12,6 +12,8 @@ public record SoftwareArtifact
 {
    public required string ArtifactId { get; init; }
 
+   public required string TransactionId { get; init; }
+
    /// <summary>
    /// The logical path within the structured workspace reflecting architectural boundaries.
    /// </summary>
@@ -28,8 +30,6 @@ public record SoftwareArtifact
    public required string SourceTraceabilityId { get; init; }
    public required string GeneratingTaskId { get; init; }
    public required string GeneratingAgentRole { get; init; }
-
-   public required string Version { get; init; }
 }
 
 /// <summary>
@@ -40,6 +40,7 @@ public record DeploymentPackage
    public required string PackageId { get; init; }
    public required string TransactionId { get; init; }
    public IReadOnlyList<SoftwareArtifact> Artifacts { get; init; } = new List<SoftwareArtifact>();
+   public required string PackagePath { get; init; }
    public required DateTimeOffset PackagedAt { get; init; }
 }
 

@@ -2,7 +2,7 @@
 using System.Threading.Tasks;
 using Imhotep.ModelGateway.Models;
 
-namespace Imhotep.ModelGateway.Services;
+namespace Imhotep.ModelGateway.Abstractions;
 
 /// <summary>
 /// The standardized abstraction layer connecting IMHOTEP agents to underlying AI models.
@@ -14,6 +14,7 @@ public interface IModelGateway
    /// Executes a bounded reasoning transaction, normalizes the output, 
    /// and validates it against the output contract before returning it to the agent.
    /// </summary>
-   Task<StructuredModelResponse> ExecuteReasoningTransactionAsync(StructuredModelRequest request);
+   Task<StructuredModelResponse> ExecuteReasoningTransactionAsync(
+      StructuredModelRequest request, CancellationToken cancellationToken = default);
 }
 

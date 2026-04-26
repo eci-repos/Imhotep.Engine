@@ -1,53 +1,34 @@
-﻿using Imhotep.Planning.Services;
+﻿using Imhotep.Planning.Models;
 using Imhotep.SemanticModel.Graph;
 
 namespace Imhotep.Agents.Models;
 
 /// <summary>
-/// Represents the structured input required for an agent to perform its reasoning task.
-/// This ensures the agent operates on bounded context rather than unbounded chat.
+/// Represents the operational context provided to an agent during invocation (ISL v3.4).
 /// </summary>
-public record AgentContext
+public class AgentContext
 {
-   /// <summary>
-   /// The specific construction task assigned to the agent.
-   /// </summary>
-   public required ConstructionTask Task { get; init; }
+   public CanonicalSemanticModel SemanticModel { get; set; }
+   public Dictionary<string, string> PriorArtifacts { get; set; } = new Dictionary<string, string>();
+
+   // Injected by the Execution Runtime if the task is in a repair cycle
+   public string DeterministicValidationFeedback { get; set; }
 
    /// <summary>
-   /// The canonical blueprint providing architectural context.
+   /// The TraceabilityId of the specific deterministic validation rule that failed (e.g., "VAL-001").
+   /// This strictly grounds the Repair Analyst to the exact source of the failure.
    /// </summary>
-   public required CanonicalSemanticModel SemanticModel { get; init; }
-
-   /// <summary>
-   /// Any validation failures passed to the agent during a repair cycle.
-   /// </summary>
-   public IReadOnlyList<string> ValidationFailures { get; init; } = new List<string>();
+   public string ValidationRuleId { get; set; }
 }
 
 /// <summary>
-/// Represents the strict output contract returned by an agent.
+/// Represents the strict structured output returned by an agent (ISL v3.8).
 /// </summary>
-public record AgentResponse
+public class AgentResult
 {
-   /// <summary>
-   /// The concrete software artifact produced (e.g., C# source code, JSON schema).
-   /// </summary>
-   public required string GeneratedArtifact { get; init; }
-
-   /// <summary>
-   /// The TraceabilityId of the specification entity this artifact fulfills.
-   /// </summary>
-   public required string TargetTraceabilityId { get; init; }
-
-   /// <summary>
-   /// Indicates whether the reasoning task completed successfully.
-   /// </summary>
-   public bool IsSuccessful { get; init; }
-
-   /// <summary>
-   /// Any structured context regarding failures or required repairs.
-   /// </summary>
-   public string DiagnosticContext { get; init; } = string.Empty;
+   public string TargetTraceabilityId { get; set; }
+   public bool IsSuccess { get; set; }
+   public Dictionary<string, string> GeneratedArtifacts { get; set; } = new Dictionary<string, string>();
+   public string StructuredOutput { get; set; }
+   public string ErrorMessage { get; set; }
 }
-

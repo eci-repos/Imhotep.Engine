@@ -40,14 +40,14 @@ public class ReadinessEvaluator : IReadinessEvaluator
 
       // 2. Evaluate the Traceability Graph (Explicit Edge Verification)
       // Ensures downstream validation rules are properly mapped to upstream constraints.
-      if (model.Validations != null && model.TraceabilityGraph != null)
+      if (model.Validations != null && model.RelationshipEdge != null)
       {
          foreach (var validation in model.Validations)
          {
             cancellationToken.ThrowIfCancellationRequested();
 
             // Verify if this Validation ID exists as a source in any traceability edge
-            bool hasMapping = model.TraceabilityGraph.Any(e => e.SourceId == validation.TraceabilityId);
+            bool hasMapping = model.RelationshipEdge.Any(e => e.SourceId == validation.TraceabilityId);
 
             if (!hasMapping)
             {
@@ -64,13 +64,28 @@ public class ReadinessEvaluator : IReadinessEvaluator
       bool isAutonomousReady = isMachineValid && !unmappedValidations.Any() && !conflictingPolicies.Any();
 
       // 4. Generate the structured Readiness Report
-      var report = new SpecificationReadinessReport(
-          IsMachineValid: isMachineValid,
-          IsAutonomousReady: isAutonomousReady,
-          MissingCanonicalElements: missingElements,
-          UnmappedValidationRules: unmappedValidations,
-          ConflictingPolicies: conflictingPolicies
-      );
+      ReadinessLevel level;
+      if (isAutonomousReady)
+      {
+         level = ReadinessLevel.AutonomousReady;
+      }
+      else if (isMachineValid)
+      {
+         level = ReadinessLevel.MachineValid;
+      }
+      else
+      {
+         throw new InvalidOperationException("The specification does not meet the minimum requirements for Machine-Valid readiness. Please address the missing canonical elements before proceeding.");
+      }
+
+      var report = new SpecificationReadinessReport
+      {
+         Level = level,
+         Exceptions = new List<string>(), // Placeholder for future exception handling during evaluation
+         MissingCanonicalElements = missingElements,
+         UnmappedValidationRules = unmappedValidations,
+         ConflictingPolicies = conflictingPolicies
+      };
 
       return Task.FromResult(report);
    }

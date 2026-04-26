@@ -99,3 +99,27 @@ public record GovernanceTelemetry : ITelemetryEvent
    public required string ApprovalGateStatus { get; init; }
 }
 
+/// <summary>
+/// Tracks the creation, modification, validation, and packaging of artifacts (ISL v2.6).
+/// </summary>
+public record ArtifactLifecycleTelemetry : ITelemetryEvent
+{
+   public required string EventId { get; init; }
+   public required DateTimeOffset Timestamp { get; init; }
+   public required string TransactionId { get; init; }
+   public required string ArtifactId { get; init; }
+   public required string LifecycleAction { get; init; } // e.g., "Generated", "Modified", "Packaged"
+}
+
+/// <summary>
+/// Measures computational resources, processing time, and model invocation latency (ISL v2.6).
+/// </summary>
+public record PerformanceTelemetry : ITelemetryEvent
+{
+   public required string EventId { get; init; }
+   public required DateTimeOffset Timestamp { get; init; }
+   public required string TransactionId { get; init; }
+   public required string ComponentName { get; init; }
+   public required long ExecutionDurationMilliseconds { get; init; }
+}
+

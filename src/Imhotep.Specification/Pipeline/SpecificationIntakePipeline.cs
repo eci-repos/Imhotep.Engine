@@ -51,7 +51,7 @@ public class SpecificationIntakePipeline
       SpecificationReadinessReport readinessReport = await _evaluator.EvaluateAsync(semanticModel, cancellationToken);
 
       // 4. Governance & Feedback Loop: If not Autonomous-Ready, halt and escalate
-      if (!readinessReport.IsAutonomousReady)
+      if (readinessReport.Level !=  ReadinessLevel.AutonomousReady)
       {
          // Format the strict Advisory Collaboration block
          string clarificationBlock = _formatter.FormatClarifications(readinessReport);

@@ -19,7 +19,7 @@ public class ClarificationFormatter : IClarificationFormatter
          throw new ArgumentNullException(nameof(report));
 
       // If the blueprint is ready for autonomous execution, no clarifications are needed.
-      if (report.IsAutonomousReady)
+      if (report.Level == ReadinessLevel.AutonomousReady)
       {
          return string.Empty;
       }

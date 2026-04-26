@@ -1,6 +1,6 @@
 ﻿
 using System.Collections.Generic;
-using Imhotep.Tools.Services;
+using Imhotep.Tools.Abstractions;
 
 namespace Imhotep.ToolGateway.Core;
 

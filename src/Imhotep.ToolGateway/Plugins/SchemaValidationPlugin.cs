@@ -2,8 +2,8 @@
 
 using System.Collections.Generic;
 using System.Threading.Tasks;
-using Imhotep.Tools.Models;
-using Imhotep.Tools.Services;
+using Imhotep.Tools.Abstractions;
+using Imhotep.Common.Models;
 
 namespace Imhotep.ToolGateway.Plugins;
 
@@ -15,35 +15,32 @@ public class SchemaValidationPlugin : IValidationPlugin
 {
    public string CapabilityName => "SchemaValidation";
 
-   public async Task<ValidationResult> ExecuteValidationAsync(ValidationRequest request)
+   public Task<ValidationResult> ExecuteValidationAsync(ValidationRequest request)
    {
-      // 1. Isolate and Execute External Tool
-      // In a real implementation, this invokes a local process, a CLI tool, or an isolated container 
-      // to test request.ArtifactContent against the required schema.
-      bool rawToolPassed = SimulateExternalSchemaCheck(request.ArtifactContent);
+      // 1. Extract the raw JSON string from the dictionary. 
+      // If the agent generated a single file, we grab the first value.
+      string jsonContentToValidate = request.ArtifactContent.Values.FirstOrDefault() ?? string.Empty;
 
-      var errors = new List<string>();
+      // 2. Isolate and Execute External Tool
+      // Now we pass the extracted string, resolving the compiler type mismatch.
+      bool rawToolPassed = SimulateExternalSchemaCheck(jsonContentToValidate);
 
-      // 2. Output Normalization (The Structured Output Contract)
-      if (!rawToolPassed)
-      {
-         // Translates messy CLI logs into a strict, machine-parseable array for the Repair Analyst
-         errors.Add("Schema Violation: Line 14, missing required property 'ChargeTrackNumber' per ENT-NODS-CHARGE constraint.");
-      }
-
-      // 3. Return Deterministic Result
-      return new ValidationResult
+      // 3. Map to standard ValidationResult
+      var result = new ValidationResult
       {
          IsSuccessful = rawToolPassed,
-         Errors = errors,
-         ValidationRuleId = request.ValidationRuleId
+         ValidationRuleId = request.ValidationRuleId,
+         Errors = rawToolPassed ? new List<string>() : new List<string> { "Schema validation failed against NCSC NODS structure." },
+         SecurityFindings = new List<string>()
       };
+
+      return Task.FromResult(result);
    }
 
    private bool SimulateExternalSchemaCheck(string artifactContent)
    {
       // Deterministic external execution logic goes here
-      return false; // Simulated failure to trigger a repair loop
+      return !string.IsNullOrWhiteSpace(artifactContent);
    }
 }
 

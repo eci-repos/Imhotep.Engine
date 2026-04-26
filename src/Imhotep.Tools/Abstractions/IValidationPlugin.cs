@@ -1,8 +1,7 @@
-﻿
-using Imhotep.Tools.Models;
+﻿using Imhotep.Common.Models;
 using System.Threading.Tasks;
 
-namespace Imhotep.Tools.Services;
+namespace Imhotep.Tools.Abstractions;
 
 /// <summary>
 /// The standard adapter interface for all external deterministic engineering tools.

@@ -2,9 +2,9 @@
 using System;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
-using Imhotep.Tools.Models;
-using Imhotep.Tools.Services;
+using Imhotep.Common.Models;
 using Imhotep.ToolGateway.Core;
+using Imhotep.Tools.Abstractions;
 
 namespace Imhotep.ToolGateway.Services;
 

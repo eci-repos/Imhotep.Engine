@@ -1,18 +1,20 @@
 ﻿
 using System;
 using System.Threading.Tasks;
+using System.Text.Json;
 using Microsoft.Extensions.Logging;
 using Imhotep.SemanticModel.Graph;
 using Imhotep.Planning.Models;
-using Imhotep.Planning.Services;
-using Imhotep.Agents.Services;
-using Imhotep.Tools.Services;
 using Imhotep.Governance.Services;
 using Imhotep.Observability.Services;
 using Imhotep.Observability.Models;
 using Imhotep.Repository.Services;
 using Imhotep.Runtime.Models;
 using Imhotep.Runtime.Services;
+using Imhotep.Agents.Abstractions;
+using Imhotep.Agents.Models;
+using Imhotep.Tools.Abstractions;
+using Imhotep.Planning.Services;
 
 namespace Imhotep.ExecutionService.Core;
 
@@ -80,12 +82,18 @@ public class ExecutionCoordinator : IExecutionRuntime
          while (!taskConverged && repairCycles < 3) // Limit repair loops to prevent infinite guessing [11, 12]
          {
             // A. Agent Invocation: Dispatch the reasoning agent to generate the artifact [13]
-            var agentResponse = await _agentOrchestrator.DispatchTaskAsync(task, semanticModel);
+            var agentContext = new AgentContext
+            {
+               SemanticModel = semanticModel
+            };
+            var agentResponse = await _agentOrchestrator.DispatchTaskAsync(task.Value, agentContext);
 
             // B. Deterministic Tool Validation: Verify the generated code [14]
-            var validationRequest = new Tools.Models.ValidationRequest
+            var validationRequest = new Common.Models.ValidationRequest
             {
-               ArtifactContent = agentResponse.GeneratedArtifact,
+               TransactionId = semanticModel.TransactionId,
+               GeneratingTaskId = task.Value.TaskId,
+               ArtifactContent = agentResponse.GeneratedArtifacts,
                TargetTraceabilityId = agentResponse.TargetTraceabilityId,
                ValidationRuleId = "VAL-DEFAULT"
             };
@@ -98,13 +106,13 @@ public class ExecutionCoordinator : IExecutionRuntime
                await _artifactRepository.SaveArtifactAsync(new Repository.Models.SoftwareArtifact
                {
                   ArtifactId = Guid.NewGuid().ToString(),
-                  FilePath = $"/src/{task.TaskCategory}/{task.TaskId}.cs",
-                  Content = agentResponse.GeneratedArtifact,
-                  Category = task.TaskCategory,
-                  SourceTraceabilityId = task.TargetTraceabilityId,
-                  GeneratingTaskId = task.TaskId,
-                  GeneratingAgentRole = "ImplementationGenerator",
-                  Version = "1.0"
+                  TransactionId = semanticModel.TransactionId,
+                  FilePath = $"/src/{task.Value.Category}/{task.Value.TaskId}.cs",
+                  Content = JsonSerializer.Serialize(agentResponse.GeneratedArtifacts),
+                  Category = task.Value.Category.ToString(),
+                  SourceTraceabilityId = agentResponse.TargetTraceabilityId,
+                  GeneratingTaskId = task.Value.TaskId,
+                  GeneratingAgentRole = "ImplementationGenerator"
                });
 
                taskConverged = true;
@@ -113,7 +121,7 @@ public class ExecutionCoordinator : IExecutionRuntime
             {
                // D. Automated Repair Cycle: Validation failed, trigger the Repair Analyst [11]
                repairCycles++;
-               _logger.LogWarning("Validation failed for Task {TaskId}. Initiating Repair Cycle {Cycle}.", task.TaskId, repairCycles);
+               _logger.LogWarning("Validation failed for Task {TaskId}. Initiating Repair Cycle {Cycle}.", task.Value.TaskId, repairCycles);
 
                // In a full implementation, the validationResult.Errors would be passed back 
                // into the AgentContext for the Repair Analyst to diagnose.
@@ -123,15 +131,16 @@ public class ExecutionCoordinator : IExecutionRuntime
          // E. Human-Machine Escalation (The "Andon Cord") [12]
          if (!taskConverged)
          {
-            _logger.LogError("Task {TaskId} failed to converge after maximum repair cycles. Escalating to Human Governance.", task.TaskId);
-            _governanceService.EscalateToHumanGovernance(semanticModel.TransactionId, new Governance.Models.PolicyEvaluationResult
+            _logger.LogError("Task {TaskId} failed to converge after maximum repair cycles. Escalating to Human Governance.", task.Value.TaskId);
+            _governanceService.EscalateToHumanGovernance(
+               semanticModel.TransactionId, new Governance.Models.PolicyEvaluationResult
             {
-               ArtifactId = task.TaskId,
+               ArtifactId = task.Value.TaskId,
                PolicyId = "SYSTEM-CONVERGENCE",
                IsCompliant = false
             });
 
-            throw new InvalidOperationException($"Construction halted: Task {task.TaskId} requires human architectural resolution.");
+            throw new InvalidOperationException($"Construction halted: Task {task.Value.TaskId} requires human architectural resolution.");
          }
       }
 

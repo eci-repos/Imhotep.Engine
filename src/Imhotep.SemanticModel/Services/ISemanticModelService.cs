@@ -1,4 +1,5 @@
-﻿using Imhotep.SemanticModel.Graph;
+﻿using Imhotep.SemanticModel.Entities;
+using Imhotep.SemanticModel.Graph;
 using System;
 using System.Collections.Generic;
 using System.Text;
@@ -6,28 +7,33 @@ using System.Text;
 namespace Imhotep.SemanticModel.Services;
 
 /// <summary>
-/// The central knowledge base providing structured access to the specification graph.
+/// Manages the canonical representation of the system specification.
+/// Acts as the central knowledge base of the platform, providing structured query interfaces 
+/// used by the Planning Engine, Agent Orchestrator, and Traceability model [3].
 /// </summary>
 public interface ISemanticModelService
 {
    /// <summary>
-   /// Accepts the normalized specification graph during the architectural handoff.
+   /// Securely stores the successfully parsed CanonicalSemanticModel after it passes human Approval Gates [1].
    /// </summary>
-   void LoadModel(CanonicalSemanticModel model);
+   Task StoreModelAsync(CanonicalSemanticModel model);
 
    /// <summary>
-   /// Retrieves the active, canonical representation of the system.
+   /// Retrieves the active Canonical Semantic Model representing the architectural blueprint.
    /// </summary>
-   CanonicalSemanticModel GetActiveModel();
+   Task<CanonicalSemanticModel?> GetModelAsync(string transactionId);
 
    /// <summary>
-   /// Queries the traceability graph to find all downstream entities impacted by a specific upstream entity.
+   /// Queries the graph for a specific canonical entity using its persistent Traceability Identifier (e.g., "REQ-001") [4].
    /// </summary>
-   IReadOnlyList<string> GetImpactedEntities(string sourceTraceabilityId);
+   Task<ICanonicalEntity?> GetEntityByIdAsync(string transactionId, string traceabilityId);
 
    /// <summary>
-   /// Queries the traceability graph to find all upstream constraints a specific entity fulfills.
+   /// Retrieves all entities of a specific canonical type (e.g., DataEntity, Policy, Service) 
+   /// to support the Planning Engine and Agent Context Assembly [1, 3].
    /// </summary>
-   IReadOnlyList<string> GetFulfillingConstraints(string targetTraceabilityId);
+   Task<IReadOnlyList<T>> GetEntitiesByTypeAsync<T>(string transactionId) where T : class, ICanonicalEntity;
+   Task<IReadOnlyList<ICanonicalEntity>> GetEntitiesByConstraintAsync(
+      string transactionId, string targetTraceabilityId, string relationshipType);
 }
 

@@ -1,0 +1,12 @@
+{
+  "profiles": {
+    "Macs.GeneratorAgent.Tests": {
+      "commandName": "Project",
+      "launchBrowser": true,
+      "environmentVariables": {
+        "ASPNETCORE_ENVIRONMENT": "Development"
+      },
+      "applicationUrl": "https://localhost:54202;http://localhost:54203"
+    }
+  }
+}

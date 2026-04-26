@@ -1,5 +1,4 @@
 ﻿using Imhotep.Planning.Models;
-using Imhotep.Planning.Services;
 using Imhotep.Runtime.Models;
 using Imhotep.SemanticModel;
 using Imhotep.SemanticModel.Graph;
@@ -20,7 +19,8 @@ public interface IExecutionRuntime
    /// </summary>
    Task<ExecutionState> ExecuteConstructionPlanAsync(
        ConstructionTaskGraph taskGraph,
-       CanonicalSemanticModel semanticModel);
+       CanonicalSemanticModel semanticModel,
+       CancellationToken stoppingToken = default);
 
    /// <summary>
    /// Retrieves the current persistent execution state to support observability, 
