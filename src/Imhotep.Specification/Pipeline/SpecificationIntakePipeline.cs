@@ -6,6 +6,7 @@ using Imhotep.Specification.Parsing;
 using Imhotep.Specification.Normalization;
 using Imhotep.Specification.Evaluation;
 using Imhotep.Specification.Feedback;
+using Imhotep.Contracts.Governance;
 
 namespace Imhotep.Specification.Pipeline;
 

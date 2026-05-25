@@ -12,6 +12,7 @@
     <ProjectReference Include="..\Imhotep.Observability\Imhotep.Observability.csproj" />
     <ProjectReference Include="..\Imhotep.Planning\Imhotep.Planning.csproj" />
     <ProjectReference Include="..\Imhotep.Repository\Imhotep.Repository.csproj" />
+    <ProjectReference Include="..\Imhotep.State\Imhotep.State.csproj" />
     <ProjectReference Include="..\Imhotep.ToolGateway\Imhotep.ToolGateway.csproj" />
     <ProjectReference Include="..\Imhotep.Tools\Imhotep.Tools.csproj" />
   </ItemGroup>

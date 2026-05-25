@@ -1,6 +1,7 @@
 ﻿
 using System.Collections.Generic;
 using Imhotep.Planning.Models;
+using Imhotep.State.Models;
 
 namespace Imhotep.Runtime.Models;
 
@@ -31,29 +32,40 @@ public record TaskExecutionResult
 }
 
 /// <summary>
-/// Reflects the real-time status of task execution within the construction engine.
-/// This state allows the runtime to recover from interruptions and resume construction reliably.
+/// ISL v2.2 Sec 14.1: Execution State Schema.
+/// Records the current condition of runtime execution, ensuring the platform can recover safely after interruption.
 /// </summary>
 public record ExecutionState
 {
-   /// <summary>
-   /// The Transaction ID of the active specification blueprint.
-   /// </summary>
-   public required string TransactionId { get; init; }
+   // --- 1. Core Identity & Traceability [ISL v2.2 Sec 14.1] ---
+   public required string ExecutionStateId { get; init; }
+   public required string ExecutionGraphId { get; init; }
+   public required string PlanId { get; init; }
+   public required string SpecificationId { get; init; }
+   public required string SpecificationVersion { get; init; }
 
+   // --- 2. Execution Status [ISL v2.2 Sec 14.4] ---
    /// <summary>
-   /// The tasks currently being processed by the agent orchestrator or tool plugins.
+   /// MUST be one of: pending, in-progress, completed, failed, escalated, halted, recovering
    /// </summary>
-   public IReadOnlyList<string> ActiveTaskIds { get; init; } = new List<string>();
+   public required string ExecutionStatus { get; init; }
 
-   /// <summary>
-   /// A historical record of all successfully completed tasks and their verified outcomes.
-   /// </summary>
-   public IReadOnlyDictionary<string, TaskExecutionResult> CompletedTasks { get; init; } = new Dictionary<string, TaskExecutionResult>();
+   public string? CurrentPhase { get; init; }
 
-   /// <summary>
-   /// Indicates whether the entire autonomous construction loop has reached stable convergence.
-   /// </summary>
-   public bool IsWorkflowComplete { get; init; }
+   // --- 3. Structured Lifecycle Tracking [ISL v2.2 Sec 14.1] ---
+   // Replaces the ad-hoc 'CompletedTasks' dictionary
+   public required IReadOnlyList<PhaseStateRecord> PhaseStates { get; init; }
+   public required IReadOnlyList<TaskStateRecord> TaskStates { get; init; }
+
+   // --- 4. Active Invocations (Replaces 'ActiveTaskIds') ---
+   public IReadOnlyList<string>? ActiveAgentInvocations { get; init; }
+   public IReadOnlyList<string>? ActiveToolInvocations { get; init; }
+   public IReadOnlyList<string>? ActiveRepairRecords { get; init; }
+
+   // --- 5. Recovery & Completion ---
+   public string? LastCheckpointId { get; init; }
+   public string? CompletionReportId { get; init; }
+
+   public required DateTimeOffset UpdatedAt { get; init; }
 }
 

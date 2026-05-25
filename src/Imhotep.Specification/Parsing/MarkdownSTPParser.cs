@@ -46,14 +46,14 @@ public class MarkdownSTPParser : IPayloadParser
       // 4. Extract the Raw Context Assembly block explicitly
       string rawContextAssembly = ExtractContextAssembly(rawPayload);
 
-      var payload = new ParsedPayload(
-          TransactionId: metadata.GetValueOrDefault("TRANSACTION_ID"),
-          AgentRoles: ParseAgentRoles(metadata.GetValueOrDefault("AGENT_ROLES")),
-          TargetArchitecture: metadata.GetValueOrDefault("TARGET_ARCHITECTURE"),
-          RawContextAssembly: rawContextAssembly,
-          RawContent: rawPayload,
-          ExtractedEntities: canonicalSections // Passes the dictionary of the 13 entities
-      );
+      var payload = new ParsedPayload
+      {
+         TransactionId = metadata.GetValueOrDefault("TRANSACTION_ID"),
+         AgentRoles = ParseAgentRoles(metadata.GetValueOrDefault("AGENT_ROLES")),
+         TargetArchitecture = metadata.GetValueOrDefault("TARGET_ARCHITECTURE"),
+         RawContextAssembly = rawContextAssembly,
+         ExtractedEntities = canonicalSections // Passes the dictionary of the 13 entities
+      };
 
       // Return the successfully parsed payload wrapped in a completed Task
       return Task.FromResult(payload);

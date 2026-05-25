@@ -8,17 +8,23 @@ using Imhotep.ModelGateway.Abstractions;
 
 namespace Imhotep.Agents.Abstractions
 {
-
    /// <summary>
-   /// The standard contract for all specialized reasoning agents (ISL v2.1).
+   /// ISL v3.4 Section 8.0: Agent Runtime Interface
+   /// Defines the contract for all role-bounded reasoning agents.
    /// </summary>
    public interface IAgent
    {
-      string RoleName { get; } // e.g., "Implementation Generator", "Repair Analyst"
+      /// <summary>
+      /// The formal ISL Agent Role this implementation fulfills (e.g., "Repair Analyst").
+      /// </summary>
+      string RoleName { get; }
 
-      Task<AgentResult> ExecuteTaskAsync(
-          ConstructionTask task,
-          AgentContext context,
+      /// <summary>
+      /// Executes the bounded reasoning transaction based on a strict request contract.
+      /// </summary>
+      Task<AgentOutputRecord> ExecuteTaskAsync(
+          AgentRuntimeRequest request,
+          AgentContextPackage context,
           IModelGateway modelGateway,
           CancellationToken cancellationToken = default);
    }

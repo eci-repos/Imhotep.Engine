@@ -11,6 +11,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\Imhotep.Planning\Imhotep.Planning.csproj" />
     <ProjectReference Include="..\Imhotep.SemanticModel\Imhotep.SemanticModel.csproj" />
   </ItemGroup>
 

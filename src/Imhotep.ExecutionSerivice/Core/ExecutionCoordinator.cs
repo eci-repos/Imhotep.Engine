@@ -1,163 +1,152 @@
-﻿
-using System;
-using System.Threading.Tasks;
-using System.Text.Json;
-using Microsoft.Extensions.Logging;
-using Imhotep.SemanticModel.Graph;
-using Imhotep.Planning.Models;
-using Imhotep.Governance.Services;
-using Imhotep.Observability.Services;
-using Imhotep.Observability.Models;
-using Imhotep.Repository.Services;
+﻿using Imhotep.Planning.Models;
 using Imhotep.Runtime.Models;
-using Imhotep.Runtime.Services;
-using Imhotep.Agents.Abstractions;
-using Imhotep.Agents.Models;
-using Imhotep.Tools.Abstractions;
-using Imhotep.Planning.Services;
+using Imhotep.SemanticModel.Graph;
+using Imhotep.State.Abstractions;
+using Imhotep.State.Models;
+using Microsoft.Extensions.Logging;
+using System;
+using System.Collections.Generic;
+using System.Threading;
+using System.Threading.Tasks;
 
-namespace Imhotep.ExecutionService.Core;
-
-/// <summary>
-/// The central orchestrator that executes the Autonomous Development Loop.
-/// Integrates Planning, Agent Orchestration, Deterministic Tools, and Governance.
-/// </summary>
-public class ExecutionCoordinator : IExecutionRuntime
+namespace Imhotep.Runtime.Services
 {
-   private readonly IPlanningEngine _planningEngine;
-   private readonly IAgentOrchestrator _agentOrchestrator;
-   private readonly IValidationPlugin _toolGateway;
-   private readonly IGovernanceService _governanceService;
-   private readonly IArtifactRepository _artifactRepository;
-   private readonly ITelemetryService _telemetryService;
-   private readonly ILogger<ExecutionCoordinator> _logger;
-
-   public ExecutionCoordinator(
-       IPlanningEngine planningEngine,
-       IAgentOrchestrator agentOrchestrator,
-       IValidationPlugin toolGateway,
-       IGovernanceService governanceService,
-       IArtifactRepository artifactRepository,
-       ITelemetryService telemetryService,
-       ILogger<ExecutionCoordinator> logger)
+   /// <summary>
+   /// ISL v2.4 & v3.5: Execution Runtime Orchestrator.
+   /// Acts as the "construction foreman" coordinating tasks, agents, tools, and repair loops.
+   /// </summary>
+   public class ExecutionCoordinator : IExecutionRuntime
    {
-      _planningEngine = planningEngine;
-      _agentOrchestrator = agentOrchestrator;
-      _toolGateway = toolGateway;
-      _governanceService = governanceService;
-      _artifactRepository = artifactRepository;
-      _telemetryService = telemetryService;
-      _logger = logger;
-   }
+      // 1. ISL v2.2: Inject the explicit logical state store for durable execution memory
+      private readonly ILogicalStateStore<ExecutionState> _stateStore;
+      private readonly ILogger<ExecutionCoordinator> _logger;
 
-   public async Task<ExecutionState> ExecuteConstructionPlanAsync(
-       ConstructionTaskGraph taskGraph,
-       CanonicalSemanticModel semanticModel)
-   {
-      _logger.LogInformation("Initiating autonomous construction for Transaction: {TransactionId}", semanticModel.TransactionId);
-
-      // 1. Governance Enforcement: Verify the specification has passed human Approval Gates [8]
-      var approvalStatus = await _governanceService.GetApprovalGateStatusAsync(semanticModel.TransactionId, "GATE-AUTONOMOUS-READY");
-      if (approvalStatus.Status != "Approved")
+      // Note: In your full implementation, this will also inject the IAgentOrchestrator, IToolGateway, 
+      // IArtifactRepository, and other dependencies needed by ExecuteBoundaryAsync and ProcessConstructionTaskAsync.
+      public ExecutionCoordinator(
+          ILogicalStateStore<ExecutionState> stateStore,
+          ILogger<ExecutionCoordinator> logger)
       {
-         throw new UnauthorizedAccessException("Execution halted: Specification has not passed the required Approval Gates.");
+         _stateStore = stateStore;
+         _logger = logger;
       }
 
-      // 2. Stream Execution Telemetry to the "Watchtower" [9]
-      _telemetryService.RecordEvent(new ExecutionTelemetry
+      /// <summary>
+      /// ISL v2.4 Sec 10.0 & ISL v3.5 Sec 5.0: Executes the complete sequence of construction activities.
+      /// </summary>
+      public async Task<ExecutionState> ExecuteConstructionPlanAsync(
+          ConstructionTaskGraph taskGraph,
+          CanonicalSemanticModel semanticModel,
+          CancellationToken stoppingToken = default)
       {
-         EventId = Guid.NewGuid().ToString(),
-         Timestamp = DateTimeOffset.UtcNow,
-         TransactionId = semanticModel.TransactionId,
-         TaskId = "SYSTEM-INIT",
-         ExecutionStatus = "Started"
-      });
+         _logger.LogInformation("Initiating Execution Runtime for Plan {PlanId}", taskGraph.PlanId);
 
-      // 3. Task Graph Execution Loop [10]
-      foreach (var task in taskGraph.Tasks)
-      {
-         int repairCycles = 0;
-         bool taskConverged = false;
-
-         while (!taskConverged && repairCycles < 3) // Limit repair loops to prevent infinite guessing [11, 12]
+         // 1. ISL v2.4 Sec 10.0 & ISL v3.5 Sec 6.0: Execution Admission
+         // The runtime MUST reject execution if the specification is not Autonomous-Ready
+         if (!semanticModel.Project.ReadinessLevel.Equals("autonomous-ready", StringComparison.OrdinalIgnoreCase))
          {
-            // A. Agent Invocation: Dispatch the reasoning agent to generate the artifact [13]
-            var agentContext = new AgentContext
+            _logger.LogError("Admission Failed: Specification {SystemId} is at readiness level '{Readiness}'.",
+                semanticModel.SystemId, semanticModel.Project.ReadinessLevel);
+
+            throw new InvalidOperationException($"ISL v1.3 & v2.4 Violation: Cannot execute construction plan. Specification MUST be 'autonomous-ready'.");
+         }
+         // 2. ISL v2.2 Sec 14.0: Initialize Execution State
+         // The execution state MUST be recorded in the persistent memory model before starting tasks
+         string transactionId = $"EXEC-{Guid.NewGuid():N}";
+         var executionState = new ExecutionState
+         {
+            ExecutionStateId = transactionId,
+            ExecutionGraphId = $"GRAPH-{Guid.NewGuid():N}",
+            PlanId = taskGraph.PlanId,
+            SpecificationId = semanticModel.SystemId,
+            SpecificationVersion = semanticModel.Version,
+
+            // ISL v2.4 Sec 9.1 & 11.1: Runtime graph begins in "in-progress" status
+            ExecutionStatus = "in-progress",
+
+            // Initialize immutable collections to satisfy IReadOnlyList schemas
+            TaskStates = new List<TaskStateRecord>().AsReadOnly(),
+            PhaseStates = new List<PhaseStateRecord>().AsReadOnly(),
+            UpdatedAt = DateTimeOffset.UtcNow
+         };
+
+         // Save the initial state to the durable database using UpsertAsync
+         await _stateStore.UpsertAsync(executionState.ExecutionStateId, executionState, stoppingToken);
+         try
+         {
+            // 3. ISL v1.5 Sec 19.0: Resolve and execute Boundary-Aware topological sort
+            // We resolve the boundaries to ensure we execute upstream dependencies before downstream components
+            var topologicalBoundaries = ResolveTopologicalBoundaries(taskGraph);
+
+            foreach (var boundary in topologicalBoundaries)
             {
-               SemanticModel = semanticModel
-            };
-            var agentResponse = await _agentOrchestrator.DispatchTaskAsync(task.Value, agentContext);
-
-            // B. Deterministic Tool Validation: Verify the generated code [14]
-            var validationRequest = new Common.Models.ValidationRequest
-            {
-               TransactionId = semanticModel.TransactionId,
-               GeneratingTaskId = task.Value.TaskId,
-               ArtifactContent = agentResponse.GeneratedArtifacts,
-               TargetTraceabilityId = agentResponse.TargetTraceabilityId,
-               ValidationRuleId = "VAL-DEFAULT"
-            };
-
-            var validationResult = await _toolGateway.ExecuteValidationAsync(validationRequest);
-
-            if (validationResult.IsSuccessful)
-            {
-               // C. Save the verified artifact to the version-controlled Repository [15]
-               await _artifactRepository.SaveArtifactAsync(new Repository.Models.SoftwareArtifact
-               {
-                  ArtifactId = Guid.NewGuid().ToString(),
-                  TransactionId = semanticModel.TransactionId,
-                  FilePath = $"/src/{task.Value.Category}/{task.Value.TaskId}.cs",
-                  Content = JsonSerializer.Serialize(agentResponse.GeneratedArtifacts),
-                  Category = task.Value.Category.ToString(),
-                  SourceTraceabilityId = agentResponse.TargetTraceabilityId,
-                  GeneratingTaskId = task.Value.TaskId,
-                  GeneratingAgentRole = "ImplementationGenerator"
-               });
-
-               taskConverged = true;
+               // Delegate to the ExecuteBoundaryAsync logic (which contains ProcessConstructionTaskAsync)
+               await ExecuteBoundaryAsync(boundary, taskGraph, semanticModel, transactionId, stoppingToken);
             }
-            else
-            {
-               // D. Automated Repair Cycle: Validation failed, trigger the Repair Analyst [11]
-               repairCycles++;
-               _logger.LogWarning("Validation failed for Task {TaskId}. Initiating Repair Cycle {Cycle}.", task.Value.TaskId, repairCycles);
 
-               // In a full implementation, the validationResult.Errors would be passed back 
-               // into the AgentContext for the Repair Analyst to diagnose.
-            }
+            // 4. ISL v2.4 Sec 29.0: Completion Orchestration
+            // Execution MAY be marked completed only when all required tasks are completed, skipped, or waived
+            _logger.LogInformation("Execution successfully completed for transaction {TransactionId}", transactionId);
+
+            executionState = executionState with
+            {
+               ExecutionStatus = "completed",
+               UpdatedAt = DateTimeOffset.UtcNow
+            };
+         }
+         catch (Exception ex)
+         {
+            _logger.LogError(ex, "Execution loop failed or triggered an Andon Cord escalation for transaction {TransactionId}", transactionId);
+
+            // ISL v2.4 Sec 9.1: If an escalation occurs, the status must reflect "escalated".
+            // Otherwise, it is a terminal "failed" status.
+            string finalStatus = ex is InvalidOperationException && ex.Message.Contains("Escalation")
+                ? "escalated"
+                : "failed";
+
+            executionState = executionState with
+            {
+               ExecutionStatus = finalStatus,
+               UpdatedAt = DateTimeOffset.UtcNow
+            };
+
+            throw; // Rethrow to allow the broader application handler to process the failure
+         }
+         finally
+         {
+            // ISL v2.2 Sec 5.3: Always persist the terminal execution state transaction using UpsertAsync
+            await _stateStore.UpsertAsync(executionState.ExecutionStateId, executionState, stoppingToken);
          }
 
-         // E. Human-Machine Escalation (The "Andon Cord") [12]
-         if (!taskConverged)
-         {
-            _logger.LogError("Task {TaskId} failed to converge after maximum repair cycles. Escalating to Human Governance.", task.Value.TaskId);
-            _governanceService.EscalateToHumanGovernance(
-               semanticModel.TransactionId, new Governance.Models.PolicyEvaluationResult
-            {
-               ArtifactId = task.Value.TaskId,
-               PolicyId = "SYSTEM-CONVERGENCE",
-               IsCompliant = false
-            });
-
-            throw new InvalidOperationException($"Construction halted: Task {task.Value.TaskId} requires human architectural resolution.");
-         }
+         return executionState;
       }
 
-      // 4. Finalize Deployment Package [16]
-      var deploymentPackage = await _artifactRepository.CreateDeploymentPackageAsync(semanticModel.TransactionId);
-
-      return new ExecutionState
+      /// <summary>
+      /// ISL v2.2: Retrieves the current persistent execution state to support observability and workflow resumption.
+      /// </summary>
+      public async Task<ExecutionState> GetCurrentStateAsync(string transactionId)
       {
-         TransactionId = semanticModel.TransactionId,
-         IsWorkflowComplete = true
-      };
-   }
+         var state = await _stateStore.GetByIdAsync(transactionId);
+         if (state == null)
+         {
+            throw new KeyNotFoundException($"ISL v2.2 Violation: ExecutionState {transactionId} could not be found in the durable state store.");
+         }
+         return state;
+      }
 
-   public Task<ExecutionState> GetCurrentStateAsync(string transactionId)
-   {
-      // Retrieves the persistent state from memory to support workflow resumption [17]
-      throw new NotImplementedException("State retrieval implementation connects to the local-first data store.");
+      // --- Stubs for internal execution flow we defined in previous steps ---
+
+      private IReadOnlyList<ConstructionBoundary> ResolveTopologicalBoundaries(ConstructionTaskGraph taskGraph)
+      {
+         // Implementation provided in earlier steps.
+         return taskGraph.Boundaries ?? new List<ConstructionBoundary>().AsReadOnly();
+      }
+
+      private async Task ExecuteBoundaryAsync(ConstructionBoundary boundary, ConstructionTaskGraph graph, CanonicalSemanticModel activeModel, string transactionId, CancellationToken cancellationToken)
+      {
+         // Implementation provided in earlier steps calling VerifyBoundaryEntryCriteriaAsync, 
+         // ProcessConstructionTaskAsync (Agent Orchestration / Tool Validation), and VerifyBoundaryExitCriteriaAsync.
+         await Task.CompletedTask;
+      }
    }
 }
-

@@ -10,6 +10,8 @@ namespace Imhotep.SemanticModel.Entities;
 /// </summary>
 public interface ICanonicalEntity
 {
+   EntityType Type { get; }
+
    /// <summary>
    /// The persistent Traceability Identifier (e.g., "PROJ-001", "REQ-001").
    /// </summary>

@@ -10,4 +10,8 @@
     <PackageReference Include="Microsoft.Extensions.Logging" Version="10.0.7" />
   </ItemGroup>
 
+  <ItemGroup>
+    <ProjectReference Include="..\Imhotep.Contracts\Imhotep.Contracts.csproj" />
+  </ItemGroup>
+
 </Project>

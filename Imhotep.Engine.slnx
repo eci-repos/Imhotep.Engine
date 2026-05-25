@@ -15,12 +15,16 @@
     <Project Path="services/Imhotep.ExecutionService/Imhotep.ExecutionService.csproj" />
   </Folder>
   <Folder Name="/Solution Items/">
+    <File Path="aider.md" />
+    <File Path="aider_generate_review.txt" />
+    <File Path="aider_run_review.txt" />
     <File Path="LICENSE.txt" />
     <File Path="README.md" />
   </Folder>
   <Folder Name="/src/">
     <Project Path="src/Imhotep.Agents/Imhotep.Agents.csproj" Id="93631408-d8fa-4ea3-a389-4022422edc33" />
     <Project Path="src/Imhotep.Common/Imhotep.Common.csproj" Id="c54571ae-3273-453d-8cf0-edf72d99837b" />
+    <Project Path="src/Imhotep.Contracts/Imhotep.Contracts.csproj" Id="779e8abd-92b9-42ea-b466-4583763f0181" />
     <Project Path="src/Imhotep.ExecutionSerivice/Imhotep.ExecutionSerivice.csproj" Id="1a414ad6-2ba2-4468-845f-0f5ef39a098b" />
     <Project Path="src/Imhotep.Governance/Imhotep.Governance.csproj" Id="93894919-7273-4387-aa31-1acbca4bbdf0" />
     <Project Path="src/Imhotep.ModelGateway/Imhotep.ModelGateway.csproj" Id="99f74f91-996c-4677-895f-0dc1a10f2053" />
@@ -31,6 +35,7 @@
     <Project Path="src/Imhotep.Security/Imhotep.Security.csproj" Id="12b903a2-7ca3-43f8-9077-5de39f9c9d62" />
     <Project Path="src/Imhotep.SemanticModel/Imhotep.SemanticModel.csproj" />
     <Project Path="src/Imhotep.Specification/Imhotep.Specification.csproj" />
+    <Project Path="src/Imhotep.State/Imhotep.State.csproj" Id="90fbf1e7-adb8-41fd-86d0-9ea4a1bd412a" />
     <Project Path="src/Imhotep.TelemetryService/Imhotep.TelemetryService.csproj" Id="196d809c-b24a-41c1-ac40-d6f83ecae5a6" />
     <Project Path="src/Imhotep.ToolGateway/Imhotep.ToolGateway.csproj" Id="d4e74106-cadb-4fb2-ae4e-f10aeefce997" />
     <Project Path="src/Imhotep.Tools/Imhotep.Tools.csproj" Id="d65ea6ba-740f-42b4-b477-6bdf18276956" />

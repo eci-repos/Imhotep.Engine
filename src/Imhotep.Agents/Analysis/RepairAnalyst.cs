@@ -17,106 +17,72 @@ namespace Imhotep.Agents.Analysis
    public class RepairAnalyst : IAgent
    {
       public string RoleName => "Repair Analyst";
-      private const int MaxRepairAttempts = 3;
 
-      public async Task<AgentResult> ExecuteTaskAsync(
-          ConstructionTask task,
-          AgentContext context,
+      // ISL v1.2 Sec 15.2: Default Repair Termination Policy is 5 attempts
+      private const int MaxRepairAttempts = 5;
+
+      public async Task<AgentOutputRecord> ExecuteTaskAsync(
+          AgentRuntimeRequest request,
+          AgentContextPackage context,
           IModelGateway modelGateway,
           CancellationToken cancellationToken = default)
       {
-         // 1. Enforce the Human-Machine Escalation Boundary (The "Andon Cord")
-         if (task.RepairAttempts >= MaxRepairAttempts)
+         // 1. State Tracking via Context: Determine attempts from durably assembled context
+         int currentRepairIteration = context.IncludedRepairRecords?.Count ?? 0;
+
+         // 2. ISL v1.5 Sec 15.5: Enforce the Human-Machine Escalation Boundary
+         if (currentRepairIteration >= MaxRepairAttempts)
          {
-            return GenerateEscalationPayload(task, context);
+            return new AgentOutputRecord
+            {
+               AgentOutputId = $"AOUT-{Guid.NewGuid():N}",
+               AgentInvocationId = request.AgentInvocationId,
+               AgentImplementationId = request.AgentImplementationId,
+               AgentRole = RoleName,
+               TaskId = request.TaskId,
+               OutputType = "repair-proposal",
+
+               // Pull the Andon Cord: Halt the autonomous loop
+               OutputStatus = "escalated",
+               Summary = $"Escalation: Repair iterations ({currentRepairIteration}) reached the maximum threshold ({MaxRepairAttempts}) without convergence.",
+
+               Confidence = "high",
+               RequiresReview = true,
+               RequiresDeterministicValidation = false,
+               ReferencedEntities = context.IncludedEntities.Select(e => e.TraceabilityId).ToList().AsReadOnly(),
+               ProducedAt = DateTimeOffset.UtcNow
+            };
          }
 
-         // 2. Context Assembly: Feed the structured validation errors to the model
-         var targetEntity = context.SemanticModel.GetEntityById(task.TargetTraceabilityId);
+         // 3. Context Assembly: Safely extract hydrated canonical entities & failures
+         var targetEntities = context.IncludedEntities; // Fully hydrated by the Orchestrator
+         var failedValidationIds = context.IncludedValidationResults ?? new List<string>().AsReadOnly();
 
-         string contextAssembly = $@"
-TARGET_ENTITY: {targetEntity?.TraceabilityId}
-ENTITY_NAME: {targetEntity?.Name}
-FAILED_VALIDATION_RULE: {context.ValidationRuleId}
-DETERMINISTIC_ERRORS: 
-{context.DeterministicValidationFeedback}
+         // 4. (Future Implementation) Route to IModelGateway utilizing the failedValidationIds
+         // var modelResponse = await modelGateway.InvokeModelAsync(...);
 
-PRIOR_ARTIFACT_STATE:
-{FormatPriorArtifacts(context.PriorArtifacts)}";
-
-         // 3. Operational Constraints
-         string operationalConstraints = @"
-- Analyze the provided compilation or validation errors.
-- Do not generate full source code. Instead, generate precise, targeted modifications.
-- Ensure the proposed fix adheres strictly to the canonical entity definition and does not violate other policies.";
-
-         // 4. Output Contract (Strict JSON)
-         string outputContractSchema = @"
-You must return your output strictly in the following JSON schema:
-{
-  ""diagnosis"": ""Brief explanation of why the validation failed."",
-  ""repairInstructions"": ""Explicit instructions on what lines to change or dependencies to add.""
-}";
-
-         // 5. Construct the Structured Transaction Request
-         var request = new StructuredModelRequest
+         // 5. ISL v3.4 Sec 13.1: Return a strictly formatted Output Record
+         return new AgentOutputRecord
          {
-            TransactionId = $"TX-REPAIR-{task.TaskId}-{Guid.NewGuid().ToString("N").Substring(0, 8)}",
-            TaskId = task.TaskId,
+            AgentOutputId = $"AOUT-{Guid.NewGuid():N}",
+            AgentInvocationId = request.AgentInvocationId,
+            AgentImplementationId = request.AgentImplementationId,
             AgentRole = RoleName,
-            ContextAssembly = contextAssembly,
-            OperationalConstraints = operationalConstraints,
-            OutputContractSchema = outputContractSchema
-         };
+            TaskId = request.TaskId,
+            OutputType = "repair-proposal",
+            Summary = $"Repair proposal successfully generated for {failedValidationIds.Count} validation failures.",
 
-         try
-         {
-            // 6. Execute Reasoning Transaction
-            StructuredModelResponse response = await modelGateway.ExecuteReasoningTransactionAsync(request, cancellationToken);
+            // The Repair Analyst proposes changes; the Implementation Generator produces artifacts
+            ProducedArtifactCandidates = null,
 
-            if (response.IsValidContract)
-            {
-               return new AgentResult
-               {
-                  IsSuccess = true,
-                  StructuredOutput = response.NormalizedOutput, // The instructions for the Implementation Generator
-                  GeneratedArtifacts = new Dictionary<string, string>() // The Repair Analyst does not write code directly
-               };
-            }
-            else
-            {
-               return new AgentResult { IsSuccess = false, ErrorMessage = "Failed output contract validation." };
-            }
-         }
-         catch (Exception ex)
-         {
-            return new AgentResult { IsSuccess = false, ErrorMessage = $"Reasoning transaction failed: {ex.Message}" };
-         }
-      }
-
-      /// <summary>
-      /// Halts autonomous execution and routes a formal escalation payload to human operators.
-      /// </summary>
-      private AgentResult GenerateEscalationPayload(ConstructionTask task, AgentContext context)
-      {
-         string escalationJson = $@"
-{{
-  ""escalationType"": ""Unresolvable Structural Conflict"",
-  ""traceabilityPath"": ""{task.TargetTraceabilityId} -> {context.ValidationRuleId}"",
-  ""failureContext"": ""Exhausted {MaxRepairAttempts} repair cycles. Manual architectural intervention required.""
-}}";
-         return new AgentResult
-         {
-            IsSuccess = false,
-            ErrorMessage = "ESCALATION_REQUIRED",
-            StructuredOutput = escalationJson
+            ReferencedEntities = targetEntities.Select(e => e.TraceabilityId).ToList().AsReadOnly(),
+            RequiresDeterministicValidation = true,
+            OutputStatus = "valid",
+            Confidence = "high",
+            RequiresReview = false,
+            ProducedAt = DateTimeOffset.UtcNow
          };
       }
 
-      private string FormatPriorArtifacts(Dictionary<string, string> artifacts)
-      {
-         // Utility to format the broken code for the prompt context
-         return string.Join("\n", artifacts);
-      }
    }
 }

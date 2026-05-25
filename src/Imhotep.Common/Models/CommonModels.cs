@@ -3,51 +3,7 @@ using System.Collections.Generic;
 
 namespace Imhotep.Common.Models;
 
-#region -- State and Memory Models (ISL v2.2)
-
-/// <summary>
-/// The five strict categories of operational state maintained by the IMHOTEP platform (ISL v2.2).
-/// </summary>
-public enum StateCategory
-{
-   Specification,
-   Planning,
-   Execution,
-   Artifact,
-   Governance
-}
-
-/// <summary>
-/// Represents the real-time operational condition of a specific platform subsystem.
-/// Utilized across the platform to ensure continuity.
-/// </summary>
-public record PlatformState
-{
-   public required string TransactionId { get; init; }
-   public required StateCategory Category { get; init; }
-   public required string CurrentStatus { get; init; }
-   public required string SerializedContextPayload { get; init; }
-   public DateTimeOffset LastUpdated { get; init; }
-}
-
-/// <summary>
-/// Represents the historical, immutable record of past activities, decisions, and tool outputs.
-/// Used by agents globally to establish context without hallucinating.
-/// </summary>
-public record MemoryRecord
-{
-   public required string RecordId { get; init; }
-   public required string TransactionId { get; init; }
-   public string? TaskId { get; init; }
-   public required string ActorId { get; init; }
-   public required string EventDescription { get; init; }
-   public required string StructuredPayload { get; init; }
-   public DateTimeOffset Timestamp { get; init; }
-}
-
-#endregion
 #region -- Deterministic Validation Models (ISL v3.9)
-
 
 /// <summary>
 /// Represents the bounded, enterprise-ready input passed to a deterministic engineering tool.

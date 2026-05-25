@@ -5,32 +5,46 @@ using Imhotep.Governance.Models;
 namespace Imhotep.Governance.Services;
 
 /// <summary>
-/// Enforces organizational policies and manages formal human approval gates to ensure 
-/// the autonomous construction process remains compliant and accountable.
+/// ISL v1.7: Enforces organizational policies, manages formal human approval gates, 
+/// and ensures autonomous construction remains compliant, accountable, and auditable.
 /// </summary>
 public interface IGovernanceService
 {
    /// <summary>
-   /// Evaluates generated artifacts or execution states against defined governance policies 
-   /// continuously during the execution workflow.
+   /// ISL v1.7 Section 14.0: Triggers a Human-Machine Escalation when the platform cannot 
+   /// safely proceed autonomously. Halts the affected branch and requests human intervention [4, 8].
    /// </summary>
-   Task<PolicyEvaluationResult> EvaluateComplianceAsync(string artifactId, GovernancePolicy policy);
+   Task<GovernanceEscalationRecord> EscalateToHumanGovernanceAsync(
+       string transactionId,
+       EscalationPayload escalationPayload,
+       CancellationToken cancellationToken = default);
+
+   /// <summary>
+   /// ISL v1.7 Section 16.1: Evaluates a formal governance check request dynamically at runtime.
+   /// The Execution Runtime MUST obey the resulting GovernanceCheckResponse decision (e.g., allow, block, escalate).
+   /// </summary>
+   Task<GovernanceCheckResponse> EvaluateGovernanceCheckAsync(GovernanceCheckRequest request, CancellationToken cancellationToken = default);
 
    /// <summary>
    /// Checks the status of a specific approval gate to determine if autonomous execution is authorized.
    /// </summary>
-   Task<ApprovalGate> GetApprovalGateStatusAsync(string transactionId, string gateId);
+   Task<ApprovalGateRecord> GetApprovalGateStatusAsync(string gateId, CancellationToken cancellationToken = default);
 
    /// <summary>
-   /// Registers a formal human sign-off on an Approval Gate, securely recording the action 
-   /// to unlock the next phase of autonomy.
+   /// Registers a formal human sign-off on an Approval Gate, securely recording the action.
+   /// Must enforce Separation of Duties (ISL v1.7 Sec 7.0).
    /// </summary>
-   void RegisterHumanApproval(string gateId, string approverIdentity, string role);
+   Task RegisterHumanApprovalAsync(string gateId, string approverIdentity, string role, CancellationToken cancellationToken = default);
 
    /// <summary>
-   /// Triggers a formal Human-Machine Escalation when deterministic tools or repair cycles 
-   /// encounter an unresolvable structural conflict against a Mandatory policy.
+   /// ISL v1.7 Section 14.0: Triggers a formal Human-Machine Escalation when deterministic tools 
+   /// or repair cycles encounter an unresolvable structural conflict.
    /// </summary>
-   void EscalateToHumanGovernance(string transactionId, PolicyEvaluationResult failureContext);
+   Task OpenEscalationAsync(GovernanceEscalationRecord escalation, CancellationToken cancellationToken = default);
+
+   /// <summary>
+   /// ISL v1.7 Section 19.0: Records an immutable governance or boundary state transition event for audit purposes.
+   /// </summary>
+   Task RecordAuditEventAsync(AuditLogEntry entry, CancellationToken cancellationToken = default);
 }
 

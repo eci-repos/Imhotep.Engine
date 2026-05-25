@@ -3,22 +3,36 @@ using System.Collections.Generic;
 using System.Text;
 
 using Imhotep.SemanticModel.Entities;
+using Imhotep.Contracts.Governance;
 
 namespace Imhotep.SemanticModel.Graph;
 
 /// <summary>
-/// The raw parsed state after the Markdown/YAML has been read, but before deep semantic normalization.
+/// Represents the extracted structure of an ISL Structured Transaction Payload (STP).
 /// </summary>
-public record ParsedPayload(
-    string TransactionId,
-    IReadOnlyList<string> AgentRoles,
-    string TargetArchitecture,
-    string RawContextAssembly,
-    string RawContent,
-    IReadOnlyDictionary<string, string> ExtractedEntities
-);
+public record ParsedPayload
+{
+   // --- YAML Frontmatter Metadata [ISL v3.8 Sec 5.1 & ISL v1.0 Sec 8.1] ---
+   public required string TransactionId { get; init; }
+   public required IReadOnlyList<string> AgentRoles { get; init; }
+   public required string TargetArchitecture { get; init; }
+
+   // ADDED: Identity and version metadata extracted from the frontmatter or header.
+   // The SemanticNormalizer uses these to hydrate the CanonicalSemanticModel identity [1, 2].
+   public string? SystemId { get; init; }
+   public string? SpecificationVersion { get; init; }
+   public string? IslVersion { get; init; }
+
+   public required string RawContextAssembly { get; init; }
+
+   // --- Extracted Canonical Sections ---
+   // Key: Canonical Entity Name (e.g., "DataEntity", "Policy")
+   // Value: The raw markdown content residing beneath that header
+   public required IReadOnlyDictionary<string, string> ExtractedEntities { get; init; }
+}
 
 /// <summary>
+/// ISL v1.1:
 /// The authoritative, normalized representation of the system architecture.
 /// This model is securely stored by the Semantic Model Service and exposed 
 /// to downstream engines.
@@ -27,6 +41,23 @@ public record CanonicalSemanticModel
 {
    public required string TransactionId { get; init; } = String.Empty;       // Added for runtime tracking
    public required string TargetArchitecture { get; init; } = String.Empty;  // Added for deployment targeting
+
+   // --- Required Versioning & Identity (ISL v1.1 Sec 10.0 & 28.1) ---
+
+   /// <summary>
+   /// The stable system identifier derived from the Project entity (e.g., "macs-greeting").
+   /// </summary>
+   public required string SystemId { get; init; }
+
+   /// <summary>
+   /// The authored specification version (e.g., "1.0.0").
+   /// </summary>
+   public required string Version { get; init; }
+
+   /// <summary>
+   /// The version of the canonical model schema.
+   /// </summary>
+   public required string ModelVersion { get; init; } = "1.0.0";
 
    // The 13 Canonical Entities
    public required ProjectEntity? Project { get; init; }
@@ -49,7 +80,7 @@ public record CanonicalSemanticModel
    /// <summary>
    /// Searches across all 13 canonical collections to return the matching entity by its TraceabilityId.
    /// </summary>
-   public ICanonicalEntity? GetEntityById(string targetTraceabilityId)
+   public ICanonicalEntity? GetEntityById(string targetTraceabilityId, CancellationToken cancellationToken = default)
    {
       if (string.IsNullOrWhiteSpace(targetTraceabilityId)) return null;
 
@@ -100,32 +131,6 @@ public record CanonicalSemanticModel
          return all;
       }
    }
-}
-
-/// <summary>
-/// Represents the maturity and execution authorization state of a system specification (ISL v1.3).
-/// </summary>
-public enum ReadinessLevel
-{
-   /// <summary>
-   /// Exploratory stage. The platform provides advisory assistance but does not construct the system [8].
-   /// </summary>
-   Draft,
-
-   /// <summary>
-   /// The blueprint is structurally defined and ready for evaluation by Human Governance Roles [9].
-   /// </summary>
-   Reviewable,
-
-   /// <summary>
-   /// The blueprint has passed schema validation and is normalized into the canonical semantic model [10].
-   /// </summary>
-   MachineValid,
-
-   /// <summary>
-   /// All Approval Gates are cleared. The platform is officially authorized to begin autonomous construction [11].
-   /// </summary>
-   AutonomousReady
 }
 
 /// <summary>

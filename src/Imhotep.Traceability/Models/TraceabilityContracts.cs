@@ -33,25 +33,6 @@ public record ArtifactTraceabilityLink
 }
 
 /// <summary>
-/// Represents the result of an automated impact analysis when a specification changes,
-/// identifying exactly what needs targeted reconstruction.
-/// </summary>
-public record ImpactAnalysisResult
-{
-   public required string ModifiedTraceabilityId { get; init; }
-
-   /// <summary>
-   /// The specific construction tasks that must be re-executed.
-   /// </summary>
-   public IReadOnlyList<string> ImpactedTaskIds { get; init; } = new List<string>();
-
-   /// <summary>
-   /// The specific artifacts that must be regenerated or updated.
-   /// </summary>
-   public IReadOnlyList<string> ImpactedArtifactIds { get; init; } = new List<string>();
-}
-
-/// <summary>
 /// Represents the persistent operational state of the platform to survive infrastructure failures [5].
 /// </summary>
 public record StateRecord
@@ -90,25 +71,79 @@ public enum RelationshipType
 }
 
 /// <summary>
-/// A single node in the bidirectional Traceability Graph.
+/// ISL v1.4 Section 8.2: Traceability Node Base Schema.
+/// Represents any lifecycle object (e.g., Artifact, Task, Boundary, Policy).
 /// </summary>
 public record TraceabilityNode
 {
-   public required string NodeId { get; init; } // The unique Traceability Identifier (e.g., REQ-001)
-   public required NodeType Type { get; init; }
-   public required string Description { get; init; }
-   public DateTimeOffset CreatedAt { get; init; } = DateTimeOffset.UtcNow;
+   public required string NodeId { get; init; }
+
+   /// <summary>
+   /// e.g., SpecificationEntity, ConstructionTask, Artifact, ValidationResult, 
+   /// GovernanceEvent, ConstructionBoundary (per ISL v1.5 Sec 19.8)
+   /// </summary>
+   public required string NodeType { get; init; }
+
+   public required string SpecificationId { get; init; }
+   public required string SpecificationVersion { get; init; }
+
+   public required string CreatedBy { get; init; }
+   public required DateTimeOffset CreatedAt { get; init; } = DateTimeOffset.UtcNow;
+
+   /// <summary>
+   /// e.g., active, deprecated, superseded, failed, archived
+   /// </summary>
+   public required string Status { get; init; } = "active";
+
+   public Dictionary<string, string>? Metadata { get; init; }
 }
 
 /// <summary>
-/// Represents a bidirectional edge linking intent, execution, and implementation.
+/// ISL v1.4 Section 9.2: Traceability Edge Base Schema.
+/// The typed mathematical relationship between two nodes.
 /// </summary>
 public record TraceabilityEdge
 {
+   public required string EdgeId { get; init; } = $"EDG-{Guid.NewGuid():N}";
+
+   /// <summary>
+   /// e.g., originates, produces, implements, validates, governed-by, 
+   /// produces-continuation (per ISL v1.5 Sec 19.8)
+   /// </summary>
+   public required string EdgeType { get; init; }
+
    public required string SourceNodeId { get; init; }
    public required string TargetNodeId { get; init; }
-   public required RelationshipType Relationship { get; init; }
-   public required string TransactionId { get; init; } // Links the edge to the State/Memory execution context
+   public required string SpecificationId { get; init; }
+   public required string SpecificationVersion { get; init; }
+   public required DateTimeOffset CreatedAt { get; init; } = DateTimeOffset.UtcNow;
+   public required string CreatedBy { get; init; }
+
+   public string? Rationale { get; init; } // Required when Edge is 'inferred'
+   public string? Confidence { get; init; } // explicit, inferred, imported, repaired
+}
+
+/// <summary>
+/// ISL v1.4 Section 18.2: Traceability Snapshot Schema.
+/// A versioned view of the graph at a specific point in time (e.g., Boundary Handoff).
+/// </summary>
+public record TraceabilitySnapshot
+{
+   public required string SnapshotId { get; init; } = $"TRS-{Guid.NewGuid():N}";
+   public required string SpecificationId { get; init; }
+   public required string SpecificationVersion { get; init; }
+   public required string CanonicalModelVersion { get; init; }
+   public required DateTimeOffset CreatedAt { get; init; } = DateTimeOffset.UtcNow;
+   public required string CreatedBy { get; init; }
+   public required int NodeCount { get; init; }
+   public required int EdgeCount { get; init; }
+
+   /// <summary>
+   /// readiness, execution-start, consolidation, deployment, audit, change-impact
+   /// </summary>
+   public required string SnapshotPurpose { get; init; }
+   public required string StorageLocation { get; init; }
+   public string? IntegrityHash { get; init; }
 }
 
 #endregion

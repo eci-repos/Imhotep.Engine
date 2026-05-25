@@ -11,6 +11,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\Imhotep.State\Imhotep.State.csproj" />
     <ProjectReference Include="..\Imhotep.Traceability\Imhotep.Traceability.csproj" />
   </ItemGroup>
 

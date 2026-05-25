@@ -4,6 +4,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Imhotep.SemanticModel.Graph;
 using Imhotep.SemanticModel.Entities;
+using Imhotep.Contracts.Governance;
 
 namespace Imhotep.Specification.Evaluation;
 

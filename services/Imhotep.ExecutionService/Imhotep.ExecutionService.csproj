@@ -14,6 +14,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\Imhotep.Agents\Imhotep.Agents.csproj" />
+    <ProjectReference Include="..\..\src\Imhotep.Contracts\Imhotep.Contracts.csproj" />
     <ProjectReference Include="..\..\src\Imhotep.Governance\Imhotep.Governance.csproj" />
     <ProjectReference Include="..\..\src\Imhotep.ModelGateway\Imhotep.ModelGateway.csproj" />
     <ProjectReference Include="..\..\src\Imhotep.Planning\Imhotep.Planning.csproj" />

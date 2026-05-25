@@ -1,4 +1,5 @@
 ﻿using Imhotep.SemanticModel.Graph;
+using Imhotep.Contracts.Governance;
 using System;
 using System.Collections.Generic;
 using System.Text;

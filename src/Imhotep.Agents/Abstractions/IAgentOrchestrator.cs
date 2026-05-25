@@ -1,5 +1,6 @@
 ﻿using System.Threading.Tasks;
 using Imhotep.Agents.Models;
+using Imhotep.Agents.Abstractions;
 using Imhotep.Planning.Models;
 using Imhotep.SemanticModel.Graph;
 
@@ -19,7 +20,7 @@ public interface IReasoningAgent
    /// <summary>
    /// Executes the reasoning task based on the provided context, returning a structured response.
    /// </summary>
-   Task<AgentResult> ExecuteTaskAsync(AgentContext context);
+   Task<AgentResult> ExecuteTaskAsync(AgentContextPackage context);
 }
 
 /// <summary>
@@ -28,8 +29,17 @@ public interface IReasoningAgent
 /// </summary>
 public interface IAgentOrchestrator
 {
+   Task<AgentContextPackage> AssembleContextAsync(
+       ConstructionTask task,
+       string agentRole,
+       CancellationToken cancellationToken = default);
+
    /// <summary>
-   /// Analyzes a construction task and dispatches it to the appropriate specialized agent.
+   /// ISL v2.1 Sec 8.0: Agent Invocation Contract.
+   /// Invokes the agent using the strict context package.
    /// </summary>
-   Task<AgentResult> DispatchTaskAsync(ConstructionTask task, AgentContext context, CancellationToken cancellationToken = default);
+   Task<AgentOutputRecord> InvokeAgentAsync(
+       ConstructionTask task,
+       AgentContextPackage contextPackage,
+       CancellationToken cancellationToken = default);
 }

@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
-using Imhotep.Governance.Models;
+using Imhotep.Contracts.Governance;
 using Imhotep.Observability.Models;
 using Imhotep.Observability.Services;
 using Imhotep.Repository.Services; // Assuming the GitArtifactRepository we built
@@ -79,7 +79,7 @@ namespace Imhotep.Governance.Services
          foreach (var role in _mandatoryGateRoles)
          {
             var gateId = $"GATE-{role.Replace(" ", "").Replace("/", "-").ToUpper()}-{transactionId}";
-            var gate = await _governanceService.GetApprovalGateStatusAsync(transactionId, gateId);
+            var gate = await _governanceService.GetApprovalGateStatusAsync(gateId);
 
             if (gate.Status != "Approved")
             {

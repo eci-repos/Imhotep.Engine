@@ -40,7 +40,7 @@ public class SpecificationIntakePipelineTests
          Assert.NotNull(result);
          Assert.Equal("TASK-SPEC-INIT-004", result.TransactionId);
          Assert.Equal("Minimal Autonomous Construction System (MACS) .NET REST Service", result.TargetArchitecture);
-         Assert.NotEmpty(result.TraceabilityEdges);
+         Assert.NotEmpty(result.RelationshipEdge);
       }
       catch (HumanMachineEscalationException exception)
       {

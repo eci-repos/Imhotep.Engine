@@ -4,6 +4,7 @@ using Imhotep.Runtime.Services;
 using Imhotep.Specification.Evaluation;
 using Imhotep.Specification.Normalization;
 using Imhotep.Specification.Parsing;
+using Imhotep.Contracts.Governance;
 using Imhotep.SemanticModel.Graph;
 
 using Microsoft.Extensions.Hosting;
@@ -71,7 +72,7 @@ namespace Imhotep.ExecutionService
                _logger.LogInformation("Specification is Autonomous-Ready. Passing control to the Planning Engine.");
 
                // 5. Construction Planning: Generate the Task Graph
-               var taskGraph = await _planningEngine.GenerateTaskGraphAsync(semanticModel, stoppingToken);
+               var taskGraph = await _planningEngine.GenerateTaskGraphAsync(semanticModel, readinessStatus, stoppingToken);
 
                // 6. Autonomous Execution: Dispatch Agents and Tools
                await _executionRuntime.ExecuteConstructionPlanAsync(taskGraph, semanticModel, stoppingToken);

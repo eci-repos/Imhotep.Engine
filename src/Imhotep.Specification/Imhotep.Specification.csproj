@@ -7,6 +7,7 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\Imhotep.Contracts\Imhotep.Contracts.csproj" />
     <ProjectReference Include="..\Imhotep.SemanticModel\Imhotep.SemanticModel.csproj" />
   </ItemGroup>
 

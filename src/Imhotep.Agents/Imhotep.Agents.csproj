@@ -14,6 +14,8 @@
     <ProjectReference Include="..\Imhotep.ModelGateway\Imhotep.ModelGateway.csproj" />
     <ProjectReference Include="..\Imhotep.Planning\Imhotep.Planning.csproj" />
     <ProjectReference Include="..\Imhotep.SemanticModel\Imhotep.SemanticModel.csproj" />
+    <ProjectReference Include="..\Imhotep.State\Imhotep.State.csproj" />
+    <ProjectReference Include="..\Imhotep.Tools\Imhotep.Tools.csproj" />
   </ItemGroup>
 
 </Project>

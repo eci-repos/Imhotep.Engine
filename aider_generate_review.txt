@@ -1,0 +1,16 @@
+Generate REVIEW.md based on findings.
+
+Requirements:
+- List files reviewed
+- Group violations by priority:
+  1. Zero Trust
+  2. Architectural
+  3. Code quality
+- Include fixes (if identified)
+- Include open issues
+
+Rules:
+- No speculation
+- No invented files
+- Use only verified findings
+- Keep format clean and structured

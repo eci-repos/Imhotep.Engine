@@ -15,8 +15,8 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\Imhotep.SemanticModel\Imhotep.SemanticModel.csproj" />
-    <ProjectReference Include="..\..\Imhotep.Specification\Imhotep.Specification.csproj" />
+    <ProjectReference Include="..\..\src\Imhotep.SemanticModel\Imhotep.SemanticModel.csproj" />
+    <ProjectReference Include="..\..\src\Imhotep.Specification\Imhotep.Specification.csproj" />
     <ProjectReference Include="..\Tests.Library\Tests.Library.csproj" />
   </ItemGroup>
 

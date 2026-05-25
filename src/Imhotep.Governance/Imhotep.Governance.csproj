@@ -11,6 +11,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\Imhotep.Contracts\Imhotep.Contracts.csproj" />
     <ProjectReference Include="..\Imhotep.Observability\Imhotep.Observability.csproj" />
     <ProjectReference Include="..\Imhotep.Repository\Imhotep.Repository.csproj" />
   </ItemGroup>

@@ -1,0 +1,62 @@
+Read and follow aider.md strictly.
+
+Task:
+Perform the first ISL r1 bootstrap code review pass for the Imhotep C# solution.
+
+Step 1:
+List the real .cs files found under the src folder, grouped by project.
+
+Step 2:
+Select an initial review batch of 5–10 files from the core bootstrap path 
+following dependency order as specified next.
+
+Dependency-aware review order:
+Begin with foundational projects before dependent runtime projects.
+
+Review order:
+1. Imhotep.Common
+2. Imhotep.Specification
+3. Imhotep.SemanticModel
+4. Imhotep.Governance
+5. Imhotep.Traceability
+6. Imhotep.Repository
+7. Imhotep.Planning
+8. Imhotep.Tools and Imhotep.ToolGateway
+9. Imhotep.Agents and Imhotep.ModelGateway
+10. Imhotep.Runtime and Imhotep.ExecutionSerivice
+11. Imhotep.Observability and Imhotep.TelemetryService
+12. Imhotep.Security
+
+Step 3:
+For only those selected files:
+- Analyze actual classes, methods, dependencies, and behavior.
+- Summarize actual behavior briefly.
+- Validate against ISL Revision 1.
+- Prioritize Zero Trust violations first.
+- Then report architectural violations.
+- Then report code quality issues.
+
+Rules:
+- Use only real files.
+- Do not invent missing files, config, architecture, or artifacts.
+- If something required by ISL r1 is absent, state: Not Implemented.
+- Do not fix code yet.
+- Stop after findings.
+
+Required output format:
+File: [file name]
+- Severity: [High | Medium | Low]
+- Issue: [specific problem]
+- Reason: [why it violates ISL]
+- Fix: [minimal corrective action]
+
+Rules:
+- Start the first review batch with Imhotep.Common.
+- Identify shared contracts, base entities, validation helpers, result types, errors, and abstractions.
+- Do not evaluate higher-level architecture until foundational contracts are understood.
+- If a project depends on types from another project, review the dependency first.
+- If dependency order cannot be determined from project references, state: Dependency order not verified.
+
+Prompt:
+Generate REVIEW.md from findings.
+
