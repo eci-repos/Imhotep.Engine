@@ -10,7 +10,7 @@ namespace Imhotep.SemanticModel.Graph;
 /// <summary>
 /// Represents the extracted structure of an ISL Structured Transaction Payload (STP).
 /// </summary>
-public record ParsedPayload
+public record StructuredSpecificationPayload
 {
    // --- YAML Frontmatter Metadata [ISL v3.8 Sec 5.1 & ISL v1.0 Sec 8.1] ---
    public required string TransactionId { get; init; }

@@ -1,8 +1,8 @@
-﻿using System;
+﻿using Imhotep.SemanticModel.Graph;
+using Imhotep.Specification.Parsing;
+using System;
 using System.Collections.Generic;
 using System.Text;
-
-using Imhotep.SemanticModel.Graph;
 
 // -------------------------------------------------------------------------------------------------
 namespace Imhotep.Specification.Normalization;
@@ -13,5 +13,5 @@ public interface ISemanticNormalizer
    /// Constructs the in-memory relational graph and extracts Traceability Identifiers.
    /// </summary>
    Task<CanonicalSemanticModel> NormalizeAsync(
-      ParsedPayload parsedPayload, CancellationToken cancellationToken = default);
+      StructuredSpecificationPayload parsedPayload, CancellationToken cancellationToken = default);
 }

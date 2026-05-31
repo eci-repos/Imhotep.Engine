@@ -2,6 +2,8 @@
 using Imhotep.SemanticModel.Graph;
 using System;
 using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations;
+using System.Reflection;
 using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
@@ -11,7 +13,7 @@ namespace Imhotep.Specification.Normalization;
 public class SemanticNormalizer : ISemanticNormalizer
 {
 
-   public Task<CanonicalSemanticModel> NormalizeAsync(ParsedPayload payload, CancellationToken cancellationToken = default)
+   public Task<CanonicalSemanticModel> NormalizeAsync(StructuredSpecificationPayload payload, CancellationToken cancellationToken = default)
    {
       cancellationToken.ThrowIfCancellationRequested();
 
@@ -37,8 +39,51 @@ public class SemanticNormalizer : ISemanticNormalizer
       var validations = ParseEntities<ValidationEntity>(payload.ExtractedEntities.GetValueOrDefault("Validation"));
 
       // 2. Map structural TraceabilityEdges (ISL v1.4 Sec 10.1)
-      // var edges = BuildTraceabilityEdges(payload.ExtractedEntities); 
       var edges = new List<TraceabilityEdge>();
+
+      // Explicit Edge Creation for the Traceability Graph
+
+      // A. Build Traceability Edges for Validations (Rule: "validates")
+      if (validations != null)
+      {
+         foreach (var validation in validations)
+         {
+            if (validation.Validates != null)
+            {
+               foreach (var targetId in validation.Validates)
+               {
+                  edges.Add(new TraceabilityEdge
+                  {
+                     EdgeId = $"EDG-{validation.TraceabilityId}-{targetId}",
+                     SourceId = validation.TraceabilityId,
+                     TargetId = targetId,
+                     RelationshipType = "validates" // Strictly defined in ISL v1.1 / v1.4
+                  });
+               }
+            }
+         }
+      }
+
+      // B. Build Traceability Edges for Services (Rule: "implements")
+      if (services != null)
+      {
+         foreach (var service in services)
+         {
+            if (service.Requirements != null)
+            {
+               foreach (var reqId in service.Requirements)
+               {
+                  edges.Add(new TraceabilityEdge
+                  {
+                     EdgeId = $"EDG-{service.TraceabilityId}-{reqId}",
+                     SourceId = service.TraceabilityId,
+                     TargetId = reqId,
+                     RelationshipType = "implements"
+                  });
+               }
+            }
+         }
+      }
 
       // 3. Resolve Root Identity and Version (ISL v1.1 Sec 10.2 & 28.1)
       string resolvedSystemId = project?.SystemId ?? payload.SystemId ?? "macs-default-system";
@@ -67,16 +112,19 @@ public class SemanticNormalizer : ISemanticNormalizer
          Policies = policies,
          Infrastructures = infrastructures,
          Validations = validations,
+
+         // Edges are now fully populated and injected into the semantic model
          RelationshipEdge = edges
       };
 
       return Task.FromResult(semanticModel);
    }
 
+
    /// <summary>
    /// Parses the raw markdown text under the "# Project" header into a formal ISL v1.1 ProjectEntity.
    /// </summary>
-   private ProjectEntity ParseProject(string content, ParsedPayload payload)
+   private ProjectEntity ParseProject(string content, StructuredSpecificationPayload payload)
    {
       // 1. ISL v1.0 Sec 8.3 & MACS STP: Regex to extract the strictly demarcated entity.
       // Expected format: **PROJ-INTAKE-001**: Court Case Intake REST Service. A MACS proof-of-concept subsystem...
@@ -125,19 +173,100 @@ public class SemanticNormalizer : ISemanticNormalizer
       };
    }
 
-   private List<T> ParseEntities<T>(string content) where T : ICanonicalEntity, new()
+   private List<T> ParseEntities<T>(string content) where T : class, new()
    {
       var entities = new List<T>();
       if (string.IsNullOrWhiteSpace(content)) return entities;
 
-      // TODO: Implement regex logic to extract IDs (e.g., REQ-001) and instantiate T
+      var lines = content.Split(new[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries);
+      T currentEntity = null;
+
+      var fieldRegex = new Regex(@"^\s*[\*\-]\s*(?:\*\*)?([a-zA-Z-]+):(?:\*\*)?\s*(.*)");
+
+      foreach (var line in lines)
+      {
+         var match = fieldRegex.Match(line);
+         if (match.Success)
+         {
+            string key = match.Groups[1].Value.ToLowerInvariant();
+            string value = match.Groups[2].Value.Trim();
+
+            // ISL v1.0 dictates 'id' acts as the anchor for a new entity [1]
+            if (key == "id")
+            {
+               currentEntity = new T();
+               SetPropertyValue(currentEntity, "id", value);
+               entities.Add(currentEntity);
+            }
+            else if (currentEntity != null)
+            {
+               // Assign the nested indented fields (name, role, concerns, etc.)
+               SetPropertyValue(currentEntity, key, value);
+            }
+         }
+      }
+
       return entities;
    }
 
-   private List<TraceabilityEdge> BuildTraceabilityGraph(IReadOnlyDictionary<string, string> sections)
+   /// <summary>
+   /// Uses Reflection to map string keys (like 'approval-authority') to C# properties (like 'ApprovalAuthority') 
+   /// and handles type conversion for booleans, enums, and string lists.
+   /// </summary>
+   private void SetPropertyValue(object obj, string propertyName, string value)
    {
-      var edges = new List<TraceabilityEdge>();
-      // Add the regex cross-reference logic provided previously here
-      return edges;
+      if (obj == null || string.IsNullOrWhiteSpace(propertyName)) return;
+
+      // 1. Normalize the property name: remove hyphens so "approval-authority" matches "ApprovalAuthority"
+      string normalizedPropertyName = propertyName.Replace("-", "");
+
+      // 2. Find the property on the target object ignoring case
+      PropertyInfo property = obj.GetType().GetProperty(normalizedPropertyName,
+          BindingFlags.IgnoreCase | BindingFlags.Public | BindingFlags.Instance);
+
+      if (property != null && property.CanWrite)
+      {
+         try
+         {
+            object convertedValue = value;
+
+            // 3. Handle specific ISL Data Type Conversions
+
+            // Convert Boolean (e.g., "true" -> true)
+            if (property.PropertyType == typeof(bool))
+            {
+               convertedValue = bool.Parse(value);
+            }
+            // Convert Arrays/Lists (e.g., "[automated impact analysis, safe system evolution]" -> List<string>)
+            else if (property.PropertyType == typeof(List<string>) ||
+                     property.PropertyType == typeof(IReadOnlyList<string>) ||
+                     property.PropertyType == typeof(IEnumerable<string>))
+            {
+               // Strip the brackets and split by comma
+               string cleanList = value.Trim('[', ']');
+               convertedValue = cleanList.Split(',')
+                                         .Select(s => s.Trim())
+                                         .Where(s => !string.IsNullOrEmpty(s))
+                                         .ToList();
+            }
+            // Convert Enums (e.g., "must-have" -> Priority.MustHave)
+            else if (property.PropertyType.IsEnum)
+            {
+               // Remove hyphens to match standard C# Enum names
+               string cleanEnumValue = value.Replace("-", "");
+               convertedValue = Enum.Parse(property.PropertyType, cleanEnumValue, ignoreCase: true);
+            }
+
+            // 4. Apply the converted value to the object
+            property.SetValue(obj, convertedValue);
+         }
+         catch (Exception ex)
+         {
+            // If conversion fails (e.g., bad enum string), silently catch or log it 
+            // so the rest of the parsing doesn't crash.
+            Console.WriteLine($"[DEBUG] Failed to map property '{propertyName}' with value '{value}': {ex.Message}");
+         }
+      }
    }
+
 }

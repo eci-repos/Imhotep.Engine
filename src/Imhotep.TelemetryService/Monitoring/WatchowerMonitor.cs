@@ -45,10 +45,14 @@ public class WatchtowerMonitor : BackgroundService
       // indicating that the Repair Analyst is stuck in an infinite loop.
       var allEvents = _telemetryService.GetTelemetryStream("TASK-SPEC-INIT-004"); // MACS POC TxID
 
+      // Evaluating the explicit ISL v1.6 Outcome strings instead of IsSuccessful <---
       var recentToolFailures = allEvents.OfType<ToolInteractionTelemetry>()
-                                        .Where(t => !t.IsSuccessful && t.ToolName == "PIIScannerPlugin")
+                                        .Where(t => (t.Outcome.Equals("failed", StringComparison.OrdinalIgnoreCase) ||
+                                                     t.Outcome.Equals("error", StringComparison.OrdinalIgnoreCase) ||
+                                                     t.Outcome.Equals("timeout", StringComparison.OrdinalIgnoreCase)) &&
+                                                     t.ToolName == "PIIScannerPlugin")
                                         .Count();
-
+   
       if (recentToolFailures >= 3)
       {
          _logger.LogCritical("WATCHTOWER ALERT: PII Scanner has failed {Count} consecutive times. " +

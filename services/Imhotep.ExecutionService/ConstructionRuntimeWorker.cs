@@ -1,72 +1,80 @@
 ﻿using Imhotep.SemanticModel.Graph;
 using Imhotep.Specification.Feedback;
+using Imhotep.Specification.Intake;
 using Imhotep.Specification.Pipeline;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 
-namespace Imhotep.ExecutionService
+namespace Imhotep.ExecutionService;
+
+public class ConstructionRuntimeWorker : BackgroundService
 {
-   public class ConstructionRuntimeWorker : BackgroundService
+   private readonly ILogger<ConstructionRuntimeWorker> _logger;
+   private readonly SpecificationIntakePipeline _intakePipeline;
+   private readonly ISpecificationIntake _specificationIntake;
+
+   // Assuming an interface that fetches the raw STP from the Artifact Repository
+   // private readonly IArtifactRepository _artifactRepository; 
+
+   public ConstructionRuntimeWorker(
+       ILogger<ConstructionRuntimeWorker> logger,
+       SpecificationIntakePipeline intakePipeline,
+       ISpecificationIntake specificationIntake)
    {
-      private readonly ILogger<ConstructionRuntimeWorker> _logger;
-      private readonly SpecificationIntakePipeline _intakePipeline;
+      _logger = logger;
+      _intakePipeline = intakePipeline;
+      _specificationIntake = specificationIntake;
+   }
 
-      // Assuming an interface that fetches the raw STP from the Artifact Repository
-      // private readonly IArtifactRepository _artifactRepository; 
+   protected override async Task ExecuteAsync(CancellationToken stoppingToken)
+   {
+      _logger.LogInformation("IMHOTEP Execution Runtime initiated at: {time}", DateTimeOffset.Now);
 
-      public ConstructionRuntimeWorker(
-          ILogger<ConstructionRuntimeWorker> logger,
-          SpecificationIntakePipeline intakePipeline)
+      while (!stoppingToken.IsCancellationRequested)
       {
-         _logger = logger;
-         _intakePipeline = intakePipeline;
-      }
-
-      protected override async Task ExecuteAsync(CancellationToken stoppingToken)
-      {
-         _logger.LogInformation("IMHOTEP Execution Runtime initiated at: {time}", DateTimeOffset.Now);
-
-         while (!stoppingToken.IsCancellationRequested)
+         try
          {
-            try
+            _logger.LogInformation("Scanning intake boundary for pending STPs...");
+
+            // 1. FORMAL AUTOMATION: Pull from the intake abstraction rather than hardcoding file reads
+            var pendingPayloads = await _specificationIntake.GetPendingPayloadsAsync(stoppingToken);
+
+            foreach (var stpRecord in pendingPayloads)
             {
-               _logger.LogInformation("Scanning Artifact Repository for pending STP...");
+               _logger.LogInformation("Payload detected: {TransactionId}. Executing Specification Intake Pipeline...", stpRecord.TransactionId);
 
-               // Fetch the raw markdown payload (Placeholder for your repository read logic)
-               // string rawStp = await _artifactRepository.GetPendingPayloadAsync("TASK-SPEC-BOOTSTRAP-005.0", stoppingToken);
-               string rawStp = "Mock raw STP payload..."; // Replace with actual fetch
+               // 2. The Intake Pipeline natively handles Parsing -> Normalization -> Evaluation -> Feedback
+               var semanticModel = await _intakePipeline.ProcessPayloadAsync(stpRecord.RawMarkdown, stoppingToken);
 
-               if (!string.IsNullOrEmpty(rawStp))
-               {
-                  _logger.LogInformation("Payload detected. Executing Specification Intake Pipeline...");
+               // 3. If successful, update the physical state (e.g., move the file to /InProgress)
+               await _specificationIntake.UpdatePayloadStateAsync(stpRecord.TransactionId, IntakeState.InProgress, stoppingToken);
 
-                  // The Intake Pipeline natively handles Parsing -> Normalization -> Evaluation -> Feedback [1]
-                  CanonicalSemanticModel semanticModel = await _intakePipeline.ProcessPayloadAsync(rawStp, stoppingToken);
+               _logger.LogInformation("Approval Gates cleared. Specification {TransactionId} is Autonomous-Ready.", stpRecord.TransactionId);
 
-                  // If we reach here, the specification is Machine-Valid & Autonomous-Ready [4]
-                  _logger.LogInformation("Approval Gates cleared. Specification is Autonomous-Ready.");
+               // Handoff to Day-2 Subsystems (To be implemented)
+               // var taskGraph = await _planningEngine.GenerateTaskGraphAsync(semanticModel);
+               // await _agentOrchestrator.ExecuteConstructionPlanAsync(taskGraph, stoppingToken);
 
-                  // Handoff to Day-2 Subsystems (To be implemented)
-                  // var taskGraph = await _planningEngine.GenerateTaskGraphAsync(semanticModel);
-                  // await _agentOrchestrator.ExecuteConstructionPlanAsync(taskGraph, stoppingToken);
-
-                  _logger.LogInformation("Construction pipeline handoff complete.");
-               }
+               _logger.LogInformation("Construction pipeline handoff complete for {TransactionId}.", stpRecord.TransactionId);
             }
-            catch (HumanMachineEscalationException ex)
-            {
-               // The pipeline mathematically proved a failure in readiness and pulled the Andon Cord [3, 4].
-               _logger.LogWarning(ex, "Advisory Collaboration triggered: Specification requires human clarification. Execution halted for this payload.");
-            }
-            catch (Exception ex)
-            {
-               // Catch-all for severe runtime crashes (e.g., infrastructure failures)
-               _logger.LogError(ex, "Systemic Exception: Structural conflict detected in execution runtime.");
-            }
-
-            // Polling interval for the background worker
-            await Task.Delay(10000, stoppingToken);
          }
+         catch (HumanMachineEscalationException ex)
+         {
+            // The pipeline mathematically proved a failure in readiness and pulled the Andon Cord.
+            _logger.LogWarning(ex, "Advisory Collaboration triggered: Specification requires human clarification. Execution halted for this payload.");
+
+            // If you have access to the TransactionId here, you would transition its state:
+            // await _specificationIntake.UpdatePayloadStateAsync(failedTransactionId, IntakeState.Escalated, stoppingToken);
+         }
+         catch (Exception ex)
+         {
+            // Catch-all for severe runtime crashes (e.g., infrastructure failures)
+            _logger.LogError(ex, "Systemic Exception: Structural conflict detected in execution runtime.");
+         }
+
+         // Polling interval for the background worker (Consider injecting this via IOptions<RuntimeConfiguration> later!)
+         await Task.Delay(10000, stoppingToken);
       }
    }
+
 }

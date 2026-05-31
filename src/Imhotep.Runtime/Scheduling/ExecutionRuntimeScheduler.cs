@@ -263,7 +263,7 @@ public class ExecutionRuntimeScheduler : ITaskScheduler
             };
 
             // Invoke deterministic validation via the Tool Gateway
-            ToolInvocationResult toolResult = await _toolGateway.InvokeToolAsync(toolRequest, cancellationToken);
+            ToolInvocationResult toolResult = await _toolGateway.ExecuteToolAsync(toolRequest, cancellationToken);
 
             // 6. ISL v2.4 Sec 15.0: Automated Repair Cycle Routing
             if (!toolResult.Outcome.Equals("passed", StringComparison.OrdinalIgnoreCase) &&

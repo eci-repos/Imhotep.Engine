@@ -79,17 +79,29 @@ public record GovernanceCheckRequest
 }
 
 /// <summary>
-/// ISL v1.7 Section 16.2: Governance Check Response Schema [4].
+/// ISL v1.7 Section 16.2: Governance Check Response Schema [1].
+/// The deterministic command returned by the Governance Engine.
 /// </summary>
 public record GovernanceCheckResponse
 {
    public required string CheckId { get; init; }
-   public required string Decision { get; init; } // e.g., allow, block, warn, escalate, approval-required
+
+   /// <summary>
+   /// allow, block, warn, escalate, approval-required, waiver-required, override-required [1].
+   /// </summary>
+   public required string Decision { get; init; }
+
    public IReadOnlyList<string>? ApplicablePolicies { get; init; }
    public string? RequiredGateId { get; init; }
    public string? RequiredRole { get; init; }
    public IReadOnlyList<string>? Findings { get; init; }
    public required string Rationale { get; init; }
+
+   /// <summary>
+   /// Expiration of the decision, if applicable (e.g., for time-bound waivers) [1].
+   /// </summary>
+   public DateTimeOffset? ExpiresAt { get; init; }
+
    public required DateTimeOffset DecidedAt { get; init; }
    public required string DecidedBy { get; init; }
 }
@@ -191,4 +203,130 @@ public record CriterionResult
    public string? Evidence { get; init; }
    public required bool Blocking { get; init; }
    public string? Remediation { get; init; }
+}
+
+/// <summary>
+/// Payload to request a time-bound governance exception (ISL v1.7 Sec 12.1).
+/// </summary>
+public record WaiverRequest
+{
+   public required string WaiverType { get; init; } // e.g., policy, validation, security, operational
+   public required string SpecificationId { get; init; }
+   public required string SpecificationVersion { get; init; }
+
+   // The specific policy, validation rule, or artifact being waived
+   public required string TargetId { get; init; }
+
+   public required string Justification { get; init; }
+
+   // CRITICAL: Must define how the risk is mitigated while the waiver is active
+   public required string CompensatingControls { get; init; }
+
+   public required string RiskTier { get; init; }
+   public required string RequestedBy { get; init; }
+
+   // Waivers must have an expiration date
+   public required DateTimeOffset Expiry { get; init; }
+   public List<string> Evidence { get; init; } = new();
+}
+
+public record WaiverRecord
+{
+   public required string WaiverId { get; init; }
+   public required string WaiverType { get; init; } // policy, validation, security, operational, deployment, traceability
+   public required string SpecificationId { get; init; }
+   public required string SpecificationVersion { get; init; }
+   public required string TargetId { get; init; }
+   public required string Justification { get; init; }
+   public required string CompensatingControls { get; init; }
+   public required string RiskTier { get; init; }
+   public required string RequestedBy { get; init; }
+   public required string ApprovedBy { get; init; }
+   public required DateTimeOffset ApprovedAt { get; init; }
+   public required DateTimeOffset Expiry { get; init; } // Time-bound limit
+   public required string Status { get; init; } // active, expired, revoked, closed
+   public DateTimeOffset? ReviewDate { get; init; }
+   public List<string> Evidence { get; init; } = new();
+}
+
+/// <summary>
+/// Payload to request a privileged bypass of a failed automated check (ISL v1.7 Sec 13.1).
+/// </summary>
+public record OverrideRequest
+{
+   public required string OverrideType { get; init; } // e.g., readiness, validation, policy, deployment
+   public required string SpecificationId { get; init; }
+   public required string SpecificationVersion { get; init; }
+   public required string TargetId { get; init; }
+
+   // The exact check or automated control that failed and is being bypassed
+   public required string FailedControl { get; init; }
+
+   public required string Justification { get; init; }
+   public required string CompensatingControls { get; init; }
+
+   public required string RequestedBy { get; init; }
+
+   // Overrides must have an expiration timestamp
+   public required DateTimeOffset Expiry { get; init; }
+   public List<string> Evidence { get; init; } = new();
+}
+
+public record OverrideRecord
+{
+   public required string OverrideId { get; init; }
+   public required string OverrideType { get; init; } // readiness, validation, policy, runtime, tool, model, deployment
+   public required string SpecificationId { get; init; }
+   public required string SpecificationVersion { get; init; }
+   public required string TargetId { get; init; }
+   public required string FailedControl { get; init; }
+   public required string Justification { get; init; }
+   public required string CompensatingControls { get; init; }
+   public required string RequestedBy { get; init; }
+   public required string ApprovedBy { get; init; } // Override Authority
+   public required DateTimeOffset ApprovedAt { get; init; }
+   public required DateTimeOffset Expiry { get; init; }
+   public required string Status { get; init; } // active, expired, revoked, closed
+   public List<string> Evidence { get; init; } = new();
+}
+
+/// <summary>
+/// Payload to request deployment authorization for release candidates (ISL v1.7 Sec 17.1).
+/// </summary>
+public record DeploymentAuthorizationRequest
+{
+   public required string SpecificationId { get; init; }
+   public required string SpecificationVersion { get; init; }
+
+   public required string DeploymentTarget { get; init; }
+   public required List<string> DeploymentArtifacts { get; init; } = new();
+
+   public required string RiskTier { get; init; }
+
+   // The evidence proving the artifacts are safe to deploy
+   public required List<string> ValidationEvidence { get; init; } = new();
+   public required List<string> PolicyEvidence { get; init; } = new();
+   public required string TraceabilitySnapshotId { get; init; }
+
+   public required string RequestedBy { get; init; }
+
+   // Used if the authorization is intended to be time-bound
+   public DateTimeOffset? RequestedExpiry { get; init; }
+}
+
+public record DeploymentAuthorizationRecord
+{
+   public required string DeploymentAuthorizationId { get; init; }
+   public required string SpecificationId { get; init; }
+   public required string SpecificationVersion { get; init; }
+   public required string DeploymentTarget { get; init; }
+   public required List<string> DeploymentArtifacts { get; init; } = new();
+   public required string RiskTier { get; init; }
+   public required List<string> ValidationEvidence { get; init; } = new();
+   public required List<string> PolicyEvidence { get; init; } = new();
+   public required string TraceabilitySnapshotId { get; init; }
+   public required string AuthorizedBy { get; init; } // Authorizing Official
+   public required DateTimeOffset AuthorizedAt { get; init; }
+   public DateTimeOffset? Expiry { get; init; }
+   public required string Status { get; init; } // authorized, rejected, expired, revoked
 }

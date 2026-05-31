@@ -6,10 +6,10 @@ using Imhotep.SemanticModel.Graph;
 // -------------------------------------------------------------------------------------------------
 namespace Imhotep.Specification.Parsing;
 
+/// <summary>
+/// ISL v3.0: Defines the abstraction for translating a physical document into parseable sections.
+/// </summary>
 public interface IPayloadParser
 {
-   /// <summary>
-   /// Parses the raw STP, extracting metadata and strictly demarcated canonical sections.
-   /// </summary>
-   Task<ParsedPayload> ParseAsync(string rawPayload, CancellationToken cancellationToken = default);
+   Task<ExtractedPayload> ParseAsync(string rawPayload, CancellationToken cancellationToken = default);
 }

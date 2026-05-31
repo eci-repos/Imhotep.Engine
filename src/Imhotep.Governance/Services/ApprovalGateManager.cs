@@ -108,11 +108,34 @@ namespace Imhotep.Governance.Services
          // 3. Emit Governance Telemetry to the Watchtower Dashboard
          _telemetryService.RecordEvent(new GovernanceTelemetry
          {
+            // --- Base Identity & Timing ---
             EventId = $"TEL-GOV-{Guid.NewGuid().ToString("N").Substring(0, 8)}",
+            Timestamp = DateTimeOffset.UtcNow,
             TransactionId = transactionId,
+
+            // --- ISL v2.6 REQUIRED Common Schema Fields ---
+            EventName = "readiness-gate-approved",
+            EventCategory = "governance",
+            SignalType = "event",
+            Severity = "informational",
+            CorrelationId = transactionId, // Stitches this event to the broader transaction
+            SourceSubsystem = "Imhotep.SpecificationService", // Identifies which module emitted this
+            RedactionStatus = "none",
+
+            // Governance events must be kept for auditors
+            RetentionClass = "audit-support",
+
+            // --- ISL v2.6 REQUIRED Enterprise Correlation Fields ---
+            // If you don't have these yet in this specific method, you can use placeholders, 
+            // but in a full implementation, these map directly to the ISL Blueprint.
+            ExecutionGraphId = "pending-generation",
+            SpecificationId = "macs-greeting",
+            SpecificationVersion = "1.0.0",
+            TaskId = "SPEC-EVALUATION-001",
+
+            // --- Governance-Specific Properties ---
             PolicyId = "SPEC-READINESS-LIFECYCLE",
-            ApprovalGateStatus = "Autonomous-Ready",
-            Timestamp = DateTimeOffset.UtcNow
+            ApprovalGateStatus = "Autonomous-Ready"
          });
 
          // The Execution Runtime and Planning Engine can now safely take over

@@ -1,24 +1,20 @@
-﻿
-using System;
-using System.Threading.Tasks;
+﻿using Imhotep.Tools.Gateway; 
+using Imhotep.ToolGateway.Models;
 using Microsoft.Extensions.Logging;
-using Imhotep.Common.Models;
-using Imhotep.ToolGateway.Core;
-using Imhotep.Tools.Abstractions;
+using System;
+using System.Diagnostics;
+using System.Threading.Tasks;
 
 namespace Imhotep.ToolGateway.Services;
 
 /// <summary>
-/// The standalone service routing deterministic validation requests from the 
-/// Execution Runtime to the appropriate isolated tool plugins.
+/// ISL v3.9 Sec 8.0: The Tool Gateway. 
+/// Provides deterministic tool invocation, trust profile enforcement, and result normalization.
 /// </summary>
-public class ToolGatewayService : IValidationPlugin
+public class ToolGatewayService : IToolGateway
 {
    private readonly IToolRegistry _toolRegistry;
    private readonly ILogger<ToolGatewayService> _logger;
-
-   // The gateway itself exposes the same interface, acting as the master router.
-   public string CapabilityName => "ToolGatewayRouter";
 
    public ToolGatewayService(IToolRegistry toolRegistry, ILogger<ToolGatewayService> logger)
    {
@@ -26,48 +22,82 @@ public class ToolGatewayService : IValidationPlugin
       _logger = logger;
    }
 
-   public async Task<ValidationResult> ExecuteValidationAsync(ValidationRequest request)
+   public async Task<ToolInvocationResult> ExecuteToolAsync(ToolInvocationRequest request, CancellationToken cancellationToken = default)
    {
-      _logger.LogInformation("Routing validation request for Rule: {ValidationRuleId}, Target: {TargetTraceabilityId}",
-          request.ValidationRuleId, request.TargetTraceabilityId);
+      _logger.LogInformation("[TOOL GATEWAY] Routing capability '{CapabilityName}' for Task: {TaskId}",
+          request.CapabilityName, request.TaskId);
+
+      var stopwatch = Stopwatch.StartNew();
+      var startedAt = DateTimeOffset.UtcNow;
 
       try
       {
-         // 1. Tool Discovery
-         var plugin = _toolRegistry.GetPluginForRule(request.ValidationRuleId);
+         // 1. Tool Discovery & Selection (Via your new IToolRegistry)
+         var plugin = _toolRegistry.GetPluginForCapability(request.CapabilityName);
 
          if (plugin == null)
          {
-            return new ValidationResult
-            {
-               IsSuccessful = false,
-               ValidationRuleId = request.ValidationRuleId,
-               Errors = new[] { $"CRITICAL: No registered tool plugin found for rule {request.ValidationRuleId}." }
-            };
+            stopwatch.Stop();
+            return GenerateErrorResult(request, "GATEWAY-ROUTER", startedAt, (int)stopwatch.ElapsedMilliseconds,
+                $"CRITICAL: No registered tool plugin found for capability {request.CapabilityName}.");
          }
 
-         // 2. Sandboxed Tool Invocation
-         // The plugin handles the execution inside an isolated environment (e.g., a container).
-         var result = await plugin.ExecuteValidationAsync(request);
+         // ---> NEW: 2. Trust Profile & Environment Enforcement (ISL v3.9 Sec 18.1) <---
+         // Evaluates if the tool is legally authorized to run in the target EnvironmentProfileId.
+         if (!plugin.IsAuthorizedForEnvironment(request.EnvironmentProfileId))
+         {
+            stopwatch.Stop();
 
-         // 3. Telemetry and Result Routing
-         _logger.LogInformation("Validation completed for {ValidationRuleId}. Success: {IsSuccessful}",
-             request.ValidationRuleId, result.IsSuccessful);
+            // Log the security violation to trigger Watchtower observability
+            _logger.LogError("[TOOL GATEWAY SECURITY BLOCK] Tool '{ToolId}' trust profile disallows use in Environment '{EnvironmentProfileId}'.",
+                plugin.ToolId, request.EnvironmentProfileId);
 
-         return result;
+            return GenerateErrorResult(request, plugin.ToolId, startedAt, (int)stopwatch.ElapsedMilliseconds,
+                $"SECURITY BLOCK: Tool {plugin.ToolId} trust profile prohibits execution in environment profile {request.EnvironmentProfileId}.");
+         }
+
+         // 3. Sandboxed Tool Invocation (Calling your exact ExecuteAsync method)
+         var result = await plugin.ExecuteAsync(request);
+         stopwatch.Stop();
+
+         _logger.LogInformation("[TOOL GATEWAY] Validation completed. Plugin: {ToolId} | Outcome: {Outcome}",
+             plugin.ToolId, result.Outcome);
+
+         // 4. Result Normalization
+         // Ensures the NormalizedBy constraint is strictly stamped by the platform Gateway
+         return result with { NormalizedBy = "ToolGatewayService" };
       }
       catch (Exception ex)
       {
-         // Ensure internal tool crashes do not bring down the IMHOTEP runtime
-         _logger.LogError(ex, "Tool execution boundary violation during {ValidationRuleId}.", request.ValidationRuleId);
+         stopwatch.Stop();
 
-         return new ValidationResult
-         {
-            IsSuccessful = false,
-            ValidationRuleId = request.ValidationRuleId,
-            Errors = new[] { $"Tool execution boundary violation: {ex.Message}" }
-         };
+         // Ensure internal tool crashes do not bring down the IMHOTEP runtime
+         _logger.LogError(ex, "[TOOL GATEWAY] Execution boundary violation during {CapabilityName}.", request.CapabilityName);
+
+         return GenerateErrorResult(request, "GATEWAY-EXCEPTION", startedAt, (int)stopwatch.ElapsedMilliseconds,
+             $"Tool execution boundary violation: {ex.Message}");
       }
    }
-}
 
+   /// <summary>
+   /// Standardizes error routing to ensure Execution Runtime can safely pull the Andon Cord.
+   /// </summary>
+   private ToolInvocationResult GenerateErrorResult(ToolInvocationRequest request, string toolId, DateTimeOffset startedAt, int durationMs, string errorMessage)
+   {
+      return new ToolInvocationResult
+      {
+         ToolInvocationId = request.ToolInvocationId,
+         ToolPluginId = toolId,
+         ToolVersion = "UNKNOWN", // See architecture note below
+         CapabilityName = request.CapabilityName,
+         TaskId = request.TaskId,
+         Outcome = "error",
+         ExitCode = -1,
+         DurationMs = durationMs,
+         StartedAt = startedAt,
+         CompletedAt = DateTimeOffset.UtcNow,
+         NextAction = "escalate", // Route execution exception directly to Governance
+         NormalizedBy = "ToolGatewayService"
+      };
+   }
+}

@@ -1,21 +1,36 @@
-﻿using System;
-using System.IO;
-using System.Threading.Tasks;
-using Microsoft.Extensions.Logging;
-using Imhotep.Traceability.Models;
-using Imhotep.Traceability.Services;
+﻿using Imhotep.Repository.Configuration;
 using Imhotep.Repository.Models;
 using Imhotep.State.Abstractions;
+using Imhotep.Traceability.Models;
+using Imhotep.Traceability.Services;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
+using System;
+using System.IO;
+using System.Threading.Tasks;
 
 namespace Imhotep.Repository.Services;
 
 public class ArtifactRepository : IArtifactRepository
 {
 
+   private readonly ArtifactRepositoryOptions _options;
    private readonly string _repositoryRootPath;
    private readonly ITraceabilityService _traceabilityService;
    private readonly ILogicalStateStore<ArtifactMetadataRecord> _metadataStore;
    private readonly ILogger<ArtifactRepository> _logger;
+   
+   // The DI container will now successfully inject the structured options
+   public ArtifactRepository(IOptions<ArtifactRepositoryOptions> options)
+   {
+      _options = options?.Value ?? throw new ArgumentNullException(nameof(options));
+            
+      // Example validation to ensure the configuration is actually populated
+      if (string.IsNullOrWhiteSpace(_options.BaseDirectory) && string.IsNullOrWhiteSpace(_options.ConnectionString))
+      {
+            throw new ArgumentException("ArtifactRepository requires either a BaseDirectory or ConnectionString to be configured.");
+      }
+   }
 
    public ArtifactRepository(
        string repositoryRootPath,

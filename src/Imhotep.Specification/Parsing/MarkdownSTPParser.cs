@@ -4,168 +4,181 @@ using System.Linq;
 using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
-using Imhotep.SemanticModel.Graph;
 
-namespace Imhotep.Specification.Parsing;
-
-/// <summary>
-/// Concrete implementation of IPayloadParser for processing Markdown-based 
-/// Structured Transaction Payloads (STPs) in the IMHOTEP architecture.
-/// </summary>
-public class MarkdownSTPParser : IPayloadParser
+namespace Imhotep.Specification.Parsing
 {
-   // The exact 13 discrete canonical entities mandated by the ISL Canonical Semantic Model
-   private static readonly string[] CanonicalHeaders = new[]
+   /// <summary>
+   /// ISL v3.0: Represents the structured data extracted from an ISL Markdown STP.
+   /// </summary>
+   public class ExtractedPayload
    {
-         "Project", "Context", "Stakeholder", "Actor", "Capability",
-         "Requirement", "Service", "Interface", "DataEntity", "Workflow",
-         "Policy", "Infrastructure", "Validation"
-     };
-
-   public Task<ParsedPayload> ParseAsync(string rawPayload, CancellationToken cancellationToken = default)
-   {
-      // Check for task cancellation from the runtime orchestrator before starting
-      cancellationToken.ThrowIfCancellationRequested();
-
-      if (string.IsNullOrWhiteSpace(rawPayload))
-         throw new ArgumentException("Payload content cannot be empty. The Specification Engine requires a valid STP.");
-
-      // 1. Zero-Trust Boundary: Enforce Prohibited Artifacts
-      EnforceSecurityBoundaries(rawPayload);
-
-      cancellationToken.ThrowIfCancellationRequested();
-
-      // 2. Metadata Extraction: Parse the YAML-style frontmatter
-      var metadata = ExtractFrontmatter(rawPayload);
-
-      cancellationToken.ThrowIfCancellationRequested();
-
-      // 3. Strict Entity Demarcation: Slice the document by the 13 canonical headers
-      var canonicalSections = ExtractCanonicalSections(rawPayload);
-
-      // 4. Extract the Raw Context Assembly block explicitly
-      string rawContextAssembly = ExtractContextAssembly(rawPayload);
-
-      var payload = new ParsedPayload
-      {
-         TransactionId = metadata.GetValueOrDefault("TRANSACTION_ID"),
-         AgentRoles = ParseAgentRoles(metadata.GetValueOrDefault("AGENT_ROLES")),
-         TargetArchitecture = metadata.GetValueOrDefault("TARGET_ARCHITECTURE"),
-         RawContextAssembly = rawContextAssembly,
-         ExtractedEntities = canonicalSections // Passes the dictionary of the 13 entities
-      };
-
-      // Return the successfully parsed payload wrapped in a completed Task
-      return Task.FromResult(payload);
+      public Dictionary<string, string> Metadata { get; set; } = new(StringComparer.OrdinalIgnoreCase);
+      public List<string> AgentRoles { get; set; } = new();
+      public string ContextAssembly { get; set; } = string.Empty;
+      public string OperationalConstraints { get; set; } = string.Empty;
+      public string OutputContract { get; set; } = string.Empty;
+      public Dictionary<string, string> CanonicalSections { get; set; } = new(StringComparer.OrdinalIgnoreCase);
    }
 
    /// <summary>
-   /// Extracts the text specifically under the # CONTEXT ASSEMBLY: header.
+   /// Concrete implementation of IPayloadParser for processing Markdown-based
+   /// Structured Transaction Payloads (STPs) in the IMHOTEP architecture.
    /// </summary>
-   private string ExtractContextAssembly(string content)
+   public class MarkdownSTPParser : IPayloadParser
    {
-      var match = Regex.Match(content, @"\#\s*CONTEXT ASSEMBLY:\s*(.*?)(?=\#\s*OPERATIONAL CONSTRAINTS:|\#\s*OUTPUT CONTRACT:|\#\#|\z)", RegexOptions.Singleline | RegexOptions.IgnoreCase);
-
-      return match.Success ? match.Groups[6].Value.Trim() : string.Empty;
-   }
-
-   /// <summary>
-   /// Actively rejects prohibited artifacts to ensure the platform operates purely on 
-   /// architectural structure rather than acting as a generic coding assistant.
-   /// </summary>
-   private void EnforceSecurityBoundaries(string content)
-   {
-      // Prohibit unstructured code snippets and UI mockups
-      var prohibitedPatterns = new List<string>
-         {
-             @"```(?:csharp|cs|java|python|js|ts|html|css)", // Manual code blocks
-             @"(?i)ui mockup",                               // UI mockups
-             @"(?i)wireframe"                                // Wireframes
-         };
-
-      foreach (var pattern in prohibitedPatterns)
+      // The exact 13 discrete canonical entities mandated by the ISL Canonical Semantic Model (ISL v1.1)
+      private static readonly string[] CanonicalHeaders = new[]
       {
-         if (Regex.IsMatch(content, pattern))
+            "Project", "Context", "Stakeholder", "Actor", "Capability",
+            "Requirement", "Service", "Interface", "DataEntity",
+            "Workflow", "Policy", "Infrastructure", "Validation"
+        };
+
+      public Task<ExtractedPayload> ParseAsync(string rawPayload, CancellationToken cancellationToken = default)
+      {
+         // Check for task cancellation from the runtime orchestrator before starting
+         cancellationToken.ThrowIfCancellationRequested();
+
+         if (string.IsNullOrWhiteSpace(rawPayload))
+            throw new ArgumentException("Payload cannot be null or empty.", nameof(rawPayload));
+
+         // 1. Enforce Zero-Trust bounds (Prohibited Artifacts)
+         EnforceSecurityBoundaries(rawPayload);
+
+         var parsed = new ExtractedPayload();
+
+         // 2. Extract YAML Frontmatter Metadata
+         parsed.Metadata = ExtractFrontmatter(rawPayload);
+         if (parsed.Metadata.TryGetValue("AGENT_ROLES", out var rolesStr))
          {
-            throw new InvalidOperationException(
-                $"Security Boundary Violation: Prohibited artifact detected matching '{pattern}'. " +
-                "The generation of UI mockups or manual code snippets is strictly prohibited within the ISL Blueprint.");
+            parsed.AgentRoles = ParseAgentRoles(rolesStr);
          }
-      }
-   }
 
-   /// <summary>
-   /// Extracts the YAML-style frontmatter bounded by '---' at the start of the payload.
-   /// </summary>
-   private Dictionary<string, string> ExtractFrontmatter(string content)
-   {
-      var metadata = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+         // 3. Extract Main Blueprint Sections (Resilient to #, ##, or ###)
+         parsed.ContextAssembly = ExtractMainSection(rawPayload, "CONTEXT ASSEMBLY:");
+         parsed.OperationalConstraints = ExtractMainSection(rawPayload, "OPERATIONAL CONSTRAINTS:");
+         parsed.OutputContract = ExtractMainSection(rawPayload, "OUTPUT CONTRACT:");
 
-      // Match the frontmatter block between --- and ---
-      var frontmatterRegex = new Regex(@"^---\s*[\r\n]+(.*?)\s*[\r\n]+---", RegexOptions.Singleline);
-      var match = frontmatterRegex.Match(content);
+         // 4. Extract 13 Canonical Entities
+         parsed.CanonicalSections = ExtractCanonicalSections(rawPayload);
 
-      if (!match.Success)
-      {
-         throw new InvalidOperationException("Invalid STP Format: Payload must begin with valid YAML-style frontmatter.");
+         return Task.FromResult(parsed);
       }
 
-      var frontmatterContent = match.Groups[1].Value;
-      var lines = frontmatterContent.Split(new[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries);
-
-      foreach (var line in lines)
+      /// <summary>
+      /// Actively rejects prohibited artifacts to ensure the platform operates purely on 
+      /// architectural structure rather than acting as a generic coding assistant.
+      /// </summary>
+      private void EnforceSecurityBoundaries(string content)
       {
-         var parts = line.Split(':', 2);
-         if (parts.Length == 2)
+         var prohibitedPatterns = new List<string>
+            {
+                @"```(?:csharp|cs|java|python|js|ts|html|css)", // Manual code blocks
+                @"(?i)ui mockup",                               // UI mockups
+                @"(?i)wireframe"                                // Wireframes
+            };
+
+         foreach (var pattern in prohibitedPatterns)
          {
-            metadata[parts[0].Trim()] = parts[1].Trim();
+            if (Regex.IsMatch(content, pattern))
+            {
+               throw new InvalidOperationException($"Security Boundary Violation: Prohibited artifact pattern detected ({pattern}).");
+            }
          }
       }
 
-      return metadata;
-   }
-
-   /// <summary>
-   /// Parses the Markdown document exclusively using the 13 canonical entity headers.
-   /// </summary>
-   private Dictionary<string, string> ExtractCanonicalSections(string content)
-   {
-      var sections = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
-
-      // Regex looks for Canonical headers formatted as either Markdown headers (### Project) or Bold text (**Project**)
-      // Group 1 captures the actual canonical header name.
-      string headerPattern = @"^(?:\#+|\*\*)\s*(" + string.Join("|", CanonicalHeaders) + @")\b\**\s*$";
-      var regex = new Regex(headerPattern, RegexOptions.Multiline | RegexOptions.IgnoreCase);
-
-      var matches = regex.Matches(content);
-
-      for (int i = 0; i < matches.Count; i++)
+      /// <summary>
+      /// Extracts the YAML-style frontmatter bounded by '---' at the start of the payload.
+      /// </summary>
+      private Dictionary<string, string> ExtractFrontmatter(string content)
       {
-         var currentMatch = matches[i];
+         var metadata = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
 
-         // CORRECTED: Apply .Trim() here to strip out any hidden \r or \n characters
-         string headerName = currentMatch.Groups[1].Value.Trim();
+         // Matches frontmatter block wrapped in "---"
+         var match = Regex.Match(content, @"^---\s*[\r\n]+(.*?)[\r\n]+---\s*[\r\n]+", RegexOptions.Singleline);
 
-         // Content spans from the end of the current header to the start of the next header (or end of document)
-         int startIndex = currentMatch.Index + currentMatch.Length;
-         int endIndex = (i + 1 < matches.Count) ? matches[i + 1].Index : content.Length;
-
-         string sectionContent = content.Substring(startIndex, endIndex - startIndex).Trim();
-
-         // Normalize key to exactly match the canonical casing
-         string canonicalKey = CanonicalHeaders.First(h => h.Equals(headerName, StringComparison.OrdinalIgnoreCase));
-         sections[canonicalKey] = sectionContent;
+         if (match.Success)
+         {
+            var lines = match.Groups[1].Value.Split(new[] { '\n', '\r' }, StringSplitOptions.RemoveEmptyEntries);
+            foreach (var line in lines)
+            {
+               var colonIndex = line.IndexOf(':');
+               if (colonIndex > 0)
+               {
+                  var key = line.Substring(0, colonIndex).Trim();
+                  var value = line.Substring(colonIndex + 1).Trim();
+                  metadata[key] = value;
+               }
+            }
+         }
+         return metadata;
       }
 
-      return sections;
-   }
+      /// <summary>
+      /// A highly resilient extractor for the main assembly headers. 
+      /// It tolerates any level of markdown heading (#, ##, ###).
+      /// </summary>
+      private string ExtractMainSection(string content, string headerName)
+      {
+         string canonicalPattern = string.Join("|", CanonicalHeaders);
 
-   private List<string> ParseAgentRoles(string rolesMetadata)
-   {
-      if (string.IsNullOrWhiteSpace(rolesMetadata)) return new List<string>();
+         // Stop at the next main section, OR a canonical markdown header, OR a canonical inline prefix (e.g., "Project PROJ-01:")
+         string stopPattern = $@"^#+\s*OPERATIONAL CONSTRAINTS:|^#+\s*OUTPUT CONTRACT:|^#+\s*CONTEXT ASSEMBLY:|^#+\s*(?:{canonicalPattern})\b|^(?:{canonicalPattern})\s+(?=[A-Z0-9\-]+:)";
 
-      // Clean brackets e.g., "[Specification Interpreter, Architecture Planner]"
-      var cleaned = rolesMetadata.Trim('[', ']');
-      return cleaned.Split(',').Select(r => r.Trim()).ToList();
+         // (?im) = IgnoreCase + Multiline. RegexOptions.Singleline allows '.' to match newline characters.
+         string pattern = $@"(?im)^#+\s*{Regex.Escape(headerName)}\s*(.*?)(?={stopPattern}|\z)";
+
+         var match = Regex.Match(content, pattern, RegexOptions.Singleline);
+         return match.Success ? match.Groups[1].Value.Trim() : string.Empty;
+      }
+
+      /// <summary>
+      /// Extracts the 13 discrete canonical entities.
+      /// It acts as a resilient fallback: It matches strictly demarcated markdown headers (e.g., "## Project") 
+      /// OR plain-text paragraphs that begin with the canonical name followed by an ID (e.g., "Project PROJ-01:").
+      /// </summary>
+      private Dictionary<string, string> ExtractCanonicalSections(string content)
+      {
+         var sections = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+         string canonicalPattern = string.Join("|", CanonicalHeaders);
+
+         // Group 1: Matches the boundary (either a markdown header OR a plain text trigger looking ahead for an ID).
+         // Group 2: Captures the canonical name if it was a markdown header (e.g. "## Project")
+         // Group 3: Captures the canonical name if it was inline plain text (e.g. "Project PROJ-001:")
+         // Group 4: Captures the actual body payload of that section.
+         string boundaryPattern = $@"^#+\s*({canonicalPattern})\b|^({canonicalPattern})\s+(?=[A-Z0-9]+-[A-Z0-9\-]+:)";
+         string pattern = $@"(?im)({boundaryPattern})\s*(.*?)(?={boundaryPattern}|\z)";
+
+         // RegexOptions.Singleline ensures '.' captures the line breaks inside the body.
+         var matches = Regex.Matches(content, pattern, RegexOptions.Singleline);
+
+         foreach (Match match in matches)
+         {
+            // Determine if it was captured as a header (Group 2) or an inline prefix (Group 3)
+            string header = match.Groups[2].Success ? match.Groups[2].Value.Trim() : match.Groups[3].Value.Trim();
+            string body = match.Groups[4].Value.Trim();
+
+            // If it was captured as an inline prefix (Option A fallback), we must prepend the ID back into the body
+            // because the regex consumed the word "Project " but left the "PROJ-001:" in the body. 
+            // This keeps the parser behavior uniform.
+            sections[header] = body;
+         }
+
+         return sections;
+      }
+
+      /// <summary>
+      /// Cleans and splits the AGENT_ROLES array from the YAML frontmatter.
+      /// </summary>
+      private List<string> ParseAgentRoles(string rolesMetadata)
+      {
+         if (string.IsNullOrWhiteSpace(rolesMetadata)) return new List<string>();
+
+         var clean = rolesMetadata.Trim('[', ']');
+         return clean.Split(',')
+                     .Select(r => r.Trim())
+                     .Where(r => !string.IsNullOrEmpty(r))
+                     .ToList();
+      }
    }
 }

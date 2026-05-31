@@ -6,7 +6,7 @@ namespace Imhotep.Tools.Gateway;
 
 /// <summary>
 /// Represents a formal request to invoke a deterministic engineering tool 
-/// (ISL v1.6 Section 13.1: Tool Invocation Request Schema).
+/// (ISL v3.9 Section 13.1: Tool Invocation Request Schema).
 /// </summary>
 public record ToolInvocationRequest
 {

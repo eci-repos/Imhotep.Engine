@@ -6,7 +6,7 @@ using Imhotep.SemanticModel.Entities;
 using Imhotep.SemanticModel.Services;
 using Imhotep.State.Abstractions;
 using Imhotep.State.Models;
-using Imhotep.Tools.Models;
+using Imhotep.Tools.Gateway;
 using Microsoft.Extensions.Logging;
 
 namespace Imhotep.Orchestration.Services;
@@ -77,7 +77,7 @@ public class AgentOrchestrator : IAgentOrchestrator
              v => v.TaskId == task.TaskId && !v.Outcome.Equals("passed", StringComparison.OrdinalIgnoreCase),
              cancellationToken);
 
-         validationResultIds.AddRange(failures.Select(f => f.InvocationResultId));
+         validationResultIds.AddRange(failures.Select(f => f.ToolInvocationResultId));
 
          var repairs = await _repairStore.FindAsync(r => r.TaskId == task.TaskId, cancellationToken);
          repairRecordIds.AddRange(repairs.Select(r => r.RepairId));

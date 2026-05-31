@@ -1,4 +1,8 @@
 <Solution>
+  <Folder Name="/adapters/" />
+  <Folder Name="/adapters/telemetry/">
+    <Project Path="adapters/telemetry/Imhotep.Adapters.Telemetry/Imhotep.Adapters.Telemetry.csproj" Id="34bb9c36-e22d-46db-8270-392062a7fef1" />
+  </Folder>
   <Folder Name="/docs/" />
   <Folder Name="/experimental/" />
   <Folder Name="/experimental/Court.CMS.POC/">

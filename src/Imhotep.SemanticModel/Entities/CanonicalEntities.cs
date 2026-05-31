@@ -115,7 +115,32 @@ public record ServiceEntity : ICanonicalEntity
    public string TraceabilityId { get; init; } = string.Empty;
    public string Name { get; init; } = string.Empty;
    public string Description { get; init; } = string.Empty;
+
+   // ISL v1.1 Required Service Properties
+   public string Responsibility { get; init; } = string.Empty;
+
+   // Maps to "**requirements:** [REQ-TRACE-001, REQ-TRACE-002]"
+   // CRITICAL: Used to build the "implements" edges in the Traceability Graph
+   public List<string> Requirements { get; init; } = new List<string>();
+
+   // Maps to "**capabilities:** [CAP-TRACE-001]"
+   public List<string> Capabilities { get; init; } = new List<string>();
+
+   // Maps to "**interfaces:** [INT-TRACE-001]"
+   public List<string> Interfaces { get; init; } = new List<string>();
+
+   // Maps to "**data-entities:** [ENT-TRACE-NODE, ENT-TRACE-EDGE]"
+   public List<string> DataEntities { get; init; } = new List<string>();
+
+   // Maps to "**dependencies:** [CTX-TRACE-001]"
+   public List<string> Dependencies { get; init; } = new List<string>();
+
+   public string DeploymentUnit { get; init; } = string.Empty;
+
+   // Maps to "**statefulness:** stateful"
+   public string Statefulness { get; init; } = string.Empty;
 }
+
 
 // 8. Interface: Specific communication boundaries (e.g., APIs).
 public record InterfaceEntity : ICanonicalEntity
@@ -171,6 +196,16 @@ public record ValidationEntity : ICanonicalEntity
    public string Name { get; init; } = string.Empty;
    public string Description { get; init; } = string.Empty;
    public string ToolMapping { get; init; } = string.Empty;
+
+   // ISL v1.1 Required Validation Properties
+   // This maps to "**validates:** [REQ-TRACE-001]"
+   public List<string> Validates { get; init; } = new List<string>();
+
+   public string ValidationType { get; init; } = string.Empty;
+   public string Method { get; init; } = string.Empty;
+   public string PassCondition { get; init; } = string.Empty;
+   public string AutomationLevel { get; init; } = string.Empty;
+   public string SeverityOnFailure { get; init; } = string.Empty;
 }
 
 /// <summary>
@@ -183,6 +218,8 @@ public record ValidationEntity : ICanonicalEntity
 /// </summary>
 public record TraceabilityEdge
 {
+   public string EdgeId { get; init; } = string.Empty;
+
    /// <summary>
    /// The TraceabilityId of the upstream/source entity (e.g., "POL-CJIS-001").
    /// </summary>

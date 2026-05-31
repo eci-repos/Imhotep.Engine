@@ -571,7 +571,7 @@ public class ExecutionService : IExecutionService
          };
 
          // 2. Invoke the tool and capture the structured, normalized result
-         var result = await _toolGateway.InvokeToolAsync(toolRequest, cancellationToken);
+         var result = await _toolGateway.ExecuteToolAsync(toolRequest, cancellationToken);
 
          _logger.LogInformation("Tool Validation [{Capability}] returned Outcome: {Outcome}", capability, result.Outcome);
 
