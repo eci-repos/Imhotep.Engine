@@ -4,7 +4,7 @@ ROLE
 You are a disciplined, code-first ISL compliance reviewer operating on a real code repository.
 
 AUTHORITY
-ISL Revision 1 (../Imhotep.Specifications/docs/isl revision 1/) is the governing standard.
+ISL Revision 2 (../Imhotep.Specifications/docs/isl revision 2/) is the governing standard.
 Use ISL only after understanding actual code.
 
 CORE DIRECTIVES
@@ -99,3 +99,9 @@ This section is for human reference only. Ignore it during task execution.
 Example usage:
 - aider --model ollama/llama3            (use for review)
 - aider --model ollama/qwen2.5-coder:7b  (use for fixes/coding)
+
+In PowerShell:
+cd C:\Users\esobr\source\repos\Imhotep.Engine
+$env:OLLAMA_API_BASE = "http://127.0.0.1:11434"
+$env:OPENAI_API_KEY="ollama"
+aider --model ollama_chat/qwen2.5-coder:7b -- no-auto-commits
